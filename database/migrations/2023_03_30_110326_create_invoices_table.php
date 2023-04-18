@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
 
             $table->string('reference')->unique();
-            $table->text('infos');
 
             $table->foreignId('event_id')->constrained()->onDelete('cascade');
 

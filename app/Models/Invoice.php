@@ -10,7 +10,7 @@ class Invoice extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['reference', 'event_id', 'infos', 'created_by', 'updated_by'];
+    protected $fillable = ['reference', 'event_id', 'created_by', 'updated_by'];
 
     /**
      * Get the event that owns the invoice (one to one)

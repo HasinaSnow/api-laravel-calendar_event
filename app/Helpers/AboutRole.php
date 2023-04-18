@@ -6,11 +6,12 @@ use Illuminate\Support\Facades\DB;
 
 class AboutRole
 {
+
     /**
      * get the id role admin
      * @return int
      */
-    public function idRoleAdmin() : int
+    public static function admin() : int
     {
         return DB::selectOne(
             'SELECT id
@@ -24,7 +25,7 @@ class AboutRole
      * get the id role event manager
      * @return int
      */
-    public function idRoleEventManager() : int
+    public  static function eventManager() : int
     {
         return DB::selectOne(
             'SELECT id
@@ -38,7 +39,7 @@ class AboutRole
      * get the id role moderator
      * @return int
      */
-    public function idRoleModerator() : int
+    public static function moderator() : int
     {
         return DB::selectOne(
             'SELECT id

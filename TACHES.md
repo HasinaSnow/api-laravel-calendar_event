@@ -2,7 +2,7 @@
 |> creation automatique de invoice après creation d'un event
 |> upload de fichier (jpg)
 ## EN COURS :
-|> installer et apprendre git
+|> refactoriser eventcontroller
 
 ## FINI :
 |> migrations et factory des tables (sauf la table invoices)
@@ -44,3 +44,4 @@
             - budget->payments->(remainders, deposits) 
             - invoice
     }
+|> installer et apprendre git

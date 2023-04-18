@@ -2,6 +2,7 @@
 
 namespace App\Services\Response;
 
+use Illuminate\Http\JsonResponse;
 
 class ResponseService
 {
@@ -30,6 +31,96 @@ class ResponseService
             'data' => $data
         ], $status_code);
 
+    }
+
+    /**
+     * send a not successfull getted response 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function successfullGetted(array $data, $subject = 'Data'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => $subject . ' successffully getted',
+            'token' => $this->token,
+            'data' => $data
+        ], 200);
+    }
+
+    /**
+     * send a not successfull deleted response 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function successfullDeleted($subject = 'Data'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => $subject . ' successfully deleted',
+            'token' => $this->token,
+            'data' => []
+        ], 200);
+    }
+
+    /**
+     * send a not successfull stored response 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function successfullStored($subject = 'Data'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => $subject . 'successffully stored',
+            'token' => $this->token,
+            'data' => []
+        ], 200);
+    }
+
+    /**
+     * send a not successfull stored response 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function successfullUpdated($subject = 'Data'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => $subject . ' successffully updated',
+            'token' => $this->token,
+            'data' => []
+        ], 200);
+    }
+
+    /**
+     * send a already existing response error 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function alreadyExist($subject = 'Data'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => $subject . ' already exists in database',
+            'token' => $this->token,
+            'data' => []
+        ], 500);
+    }
+
+    /**
+     * send a not authorized response 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function notAuthorized(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Not Authorized',
+            'token' => $this->token,
+            'data' => []
+        ], 404);
     }
 
     /**

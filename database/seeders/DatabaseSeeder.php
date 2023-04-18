@@ -118,8 +118,7 @@ class DatabaseSeeder extends Seeder
                 // invoice->belongsTo (one to one )
                 Invoice::factory(1)->create([
                     'event_id' => $event->id,
-                    'reference'=> fake()->slug(3),
-                    'infos' => fake()->sentence(),
+                    'reference'=> "invoice_" . $event->id,
                     'created_by' => $event->created_by
                 ]);
 

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('budgets', function (Blueprint $table) {
             $table->id();
 
-            $table->integer('amount')->nullable()->default(0);
+            $table->integer('amount')->default(0);
             $table->text('infos')->nullable();
             $table->foreignId('event_id')->constrained()->onDelete('cascade');
 

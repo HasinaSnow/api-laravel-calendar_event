@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutRole;
 use App\Helpers\AboutUser;
 use App\Http\Requests\EventRequest;
 use App\Models\Budget;
@@ -15,10 +14,7 @@ use App\Models\Pack;
 use App\Models\Place;
 use App\Models\Service;
 use App\Models\Type;
-use App\Services\JWT\JWTService;
-use App\Services\Permission\Voter\VoteService;
 use App\Services\Response\ResponseService;
-use Carbon\Exceptions\Exception;
 
 class EventController extends Controller
 {
@@ -27,16 +23,10 @@ class EventController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        JWTService $jWTService,
         AboutUser $aboutUser,
-        AboutRole $aboutRole,
     ) {
-        
-        // aboutuser
-        $userId = $jWTService->getIdUserToken();
-        $userRoles = $aboutUser->idUserRoles($userId); // 5
-        $userServices = $aboutUser->idUserServices($userId); // [4,3]
 
+        // get the data in db
         $events = Event::with(
             [
                 'client:id,name',
@@ -47,49 +37,38 @@ class EventController extends Controller
                 'services:id,name' //with pivot
             ]
         );
-
-        if (in_array($aboutRole->idRoleAdmin(), $userRoles)) {
-            $events = $events->with('budget:id,event_id,amount', 'pack:id,name');
+        // trier les données en fonction du profile de l'user
+        if ($aboutUser->isAdmin()) {
+            $events = $events->with('budget:event_id,amount', 'pack:id,name');
         } else {
-            if (in_array($aboutRole->idRoleEventManager(), $userRoles)) {
+            if ($aboutUser->isEventManager()) {
                 $events = $events
                     ->with('pack:id,name')
                     ->where('audience', true) 
-                    ->orWhere('created_by', $userId);
+                    ->orWhere('created_by', $aboutUser->id);
             } else {
                 $events = $events
                     ->where('audience', true)
-                    ->whereRelation('services', 'service_id', '=', implode('||', $userServices));
+                    ->whereRelation('services', 'service_id', '=', implode('||', $aboutUser->idServices()));
             }
         }
-
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'All events successfully getted',
-            $events->get()->toArray()
-        );
+        // send the success response
+        return $responseService->successfullGetted($events->get()->toArray(), 'All events');
     }
 
+    /**
+     * Display a listing of the resource to store a new data
+     */
     public function create(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Event $event
     )
     {
-        // verify the permission
-        $attribute = ['create'];
-        if (!$permission->resultVote($attribute, $event, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
+        // verify the user permission 
+        if (!$aboutUser->isPermisToCreate($event))
+            return $responseService->notAuthorized();
+        // get the data in db
         $datas = [
             'services' => Service::all(['id', 'name', 'infos'])->toArray(),
             'clients' => Client::all(['id', 'name', 'infos'])->toArray(),
@@ -99,14 +78,8 @@ class EventController extends Controller
             'places' => Place::all(['id', 'name', 'infos'])->toArray(),
             'packs' => Pack::all(['id', 'name', 'infos'])->toArray()
         ];
-
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Data succeffully getted',
-            $datas
-        );
-
+        // send the success response
+        return $responseService->successfullGetted($datas);
     }
 
     /**
@@ -115,35 +88,24 @@ class EventController extends Controller
     public function store(
         ResponseService $responseService,
         EventRequest $eventRequest,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Event $event
     ) {
-
-        // verify the permission
-        $attribute = ['create'];
-        if (!$permission->resultVote($attribute, $event, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        // verify the user permission
+        if(!$aboutUser->isPermisToCreate($event))
+            return $responseService->notAuthorized();
 
         // record the datas
         $event = new Event();
         $event->date = $eventRequest->date;
         $event->audience = $eventRequest->audience;
-
         $event->client_id = $eventRequest->client_id;
         $event->place_id = $eventRequest->place_id;
         $event->category_id = $eventRequest->category_id;
         $event->type_id = $eventRequest->type_id;
         $event->confirmation_id = $eventRequest->confirmation_id;
         $event->pack_id = $eventRequest->pack_id;
-
-        $event->created_by = $jWTService->getIdUserToken();
+        $event->created_by = $aboutUser->id();
 
         // verifie the unique record in database
         if (
@@ -155,67 +117,38 @@ class EventController extends Controller
             ->where('client_id', $event->client_id)
             ->where('pack_id', $event->pack_id)
             ->exists()
-        ) {
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'the record is already exists in database',
-            );
-        }
+        ) 
+            return $responseService->alreadyExist('Event');
 
-        // try to store in the database
-        try{
-            // store the event in table (event)
-            $event->save();
+        // store the event
+        $event->save();
 
-            // attachement ave les tables pivot
-            foreach($eventRequest->service_id as $serviceId)
-                $serviceToAttach[$serviceId] = ['created_by' => $jWTService->getIdUserToken()];
-            $event->services()->attach($serviceToAttach);
-            foreach($eventRequest->equipement_id as $equipId)
-                $equipToAttach[$equipId] = ['created_by' => $jWTService->getIdUserToken()];
-            $event->equipements()->attach($equipToAttach);
-            foreach($eventRequest->task_id as $taskId)
-                $taskToAttach[$taskId] = ['created_by' => $jWTService->getIdUserToken()];
-            $event->tasks()->attach($taskToAttach);
+        // attachement avec les tables pivot (many to many)
+        foreach($eventRequest->service_id as $serviceId)
+            $serviceToAttach[$serviceId] = ['created_by' => $aboutUser->id()];
+        $event->services()->attach($serviceToAttach);
 
-            // creation au niveau de table en relation hasOne (one to one)
-            if($eventRequest->budget_creation)
-            {
-                Budget::create([
-                    'event_id' => $event->id,
-                    'amount' => $eventRequest->budget_amount,
-                    'infos' => $eventRequest->budget_infos,
-                    'created_by' => $jWTService->getIdUserToken()
-                ]);
-            }
-            if($eventRequest->invoice_creation)
-            {
-                Invoice::create([
-                    'event_id' => $event->id,
-                    'reference' => $eventRequest->budget_amount,
-                    'infos' => $eventRequest->budget_infos,
-                    'created_by' => $jWTService->getIdUserToken()
-                ]);
-            }
-
-            // renvoie de la reponse
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'Data succeffully stored'
-            );
-
-        }catch(Exception $e)
+        // creation au niveau de table en relation hasOne (one to one)
+        if($eventRequest->budget_creation)
         {
-             // send the success response
-            return $responseService->generateResponseJson(
-                'error',
-                500,
-                'error server to saved the new event in database',
-                [$e]
-            );
+            Budget::create([
+                'event_id' => $event->id,
+                'amount' => $eventRequest->budget_amount,
+                'infos' => $eventRequest->budget_infos,
+                'created_by' => $aboutUser->id()
+            ]);
         }
+
+        // creation automatique d'un invoice
+        Invoice::create([
+            'event_id' => $event->id,
+            'reference' => "invoice_" . $event->id,
+            'created_by' => $aboutUser->id()
+        ]);
+
+        // send the successfull response
+        return $responseService->successfullStored('Event');
+
     }
 
     /**
@@ -223,41 +156,33 @@ class EventController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        JWTService $jWTService,
-        AboutRole $aboutRole,
         AboutUser $aboutUser,
         Event $event,
     ) {
-
-        // données concernant l'user
-        $userId = $jWTService->getIdUserToken();
-        $userRoles = $aboutUser->idUserRoles($userId);
-        $userServices = $aboutUser->idUserServices($userId);
-
         // recuperer les données
         $datas = [
-            'event' => $event->toArray(),
-            'services' => $event->services()->get(['service_id', 'name', 'infos'])->toArray(),
-            'category' =>$event->category()->get(['id', 'name', 'infos'])->toArray(),
-            'place' =>$event->place()->get(['id', 'name', 'infos'])->toArray(),
-            'client' =>$event->client()->get(['id', 'name', 'infos'])->toArray(),
-            'confirmation' =>$event->confirmation(['id', 'name', 'infos'])->get()->toArray(),
-            'type' =>$event->type()->get(['id', 'name', 'infos'])->toArray(),
+            'event' => $event,
+            'services' => $event->services()->get(['service_id', 'name']),
+            'category' =>$event->category()->get(['id', 'name', 'infos']),
+            'place' =>$event->place()->get(['id', 'name', 'infos']),
+            'client' =>$event->client()->get(['id', 'name', 'infos']),
+            'confirmation' =>$event->confirmation(['id', 'name', 'infos']),
+            'type' =>$event->type()->get(['id', 'name', 'infos']),
             'tasks' => $event->tasks()
-                ->wherePivot('attribute_to', '=', $userId)
+                ->wherePivot('attribute_to', '=', $aboutUser->id())
                 ->withPivot('expiration', 'check', 'attribute_to')
-                ->get()->toArray()
-        ];
+        ]; 
 
-        if (in_array($aboutRole->idRoleAdmin(), $userRoles)) {
+        // 
+        if ($aboutUser->isAdmin()) {
+            $datas['pack'] = $event->pack()->get()->toArray();
             $datas['budget'] = $event->budget()->get()->toArray();
             $datas['equipements'] =$event->equipements()->get()->toArray();
             $datas['tasks'] = $event->tasks()->get()->toArray();
-            $datas['pack'] = $event->pack()->get()->toArray();
         } else {
-            if (in_array($aboutRole->idRoleEventManager(), $userRoles)) {
+            if ($aboutUser->isEventManager()) {
                 // if (audience = true OR created_by = id_user)
-                if(($event->created_by !== $userId || !$event->audience))
+                if(($aboutUser->isCreator($event) || !$event->audience))
                     $datas = [];
                 else 
                     $datas['pack'] = $event->pack()->get()->toArray();
@@ -269,7 +194,7 @@ class EventController extends Controller
         
                 $access = false;
                 foreach($services as $service){
-                    if(in_array($service, $userServices))
+                    if(in_array($service, $aboutUser->idServices()))
                     {
                         $access = true; 
                         break;
@@ -296,19 +221,11 @@ class EventController extends Controller
     public function update(
         ResponseService $responseService,
         EventRequest $eventRequest,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Event $event
     ) {
-        $attribute = ['interact'];
-        if (!$permission->resultVote($attribute, $event, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        if (!$aboutUser->isPermisToInteract($event))
+            return $responseService->notAuthorized();
 
         // update the datas
         $event->date = $eventRequest->date;
@@ -321,7 +238,7 @@ class EventController extends Controller
         $event->confirmation_id = $eventRequest->confirmation_id;
         $event->pack_id = $eventRequest->pack_id;
 
-        $event->updated_by = $jWTService->getIdUserToken();
+        $event->updated_by = $aboutUser->id();
 
         // verifie the unique record in database
         if (
@@ -334,103 +251,54 @@ class EventController extends Controller
             ->where('pack_id', $event->pack_id)
             ->exists()
         ) {
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'the record is already exists in database',
-            );
+            return $responseService->alreadyExist('Event');
         }
 
-        // try to store in the database
-        try{
-            // store the event in table (event)
-            $event->update();
+        // store the event in table (event)
+        $event->update();
 
-            // attachement/synchronisation des tables pivot (many to many)
-            $event->services()->syncWithPivotValues($eventRequest->service_id, ['updated_by' => $jWTService->getIdUserToken()]);
-            $event->equipements()->syncWithPivotValues($eventRequest->equipement_id, ['updated_by' => $jWTService->getIdUserToken()]);
-            $event->tasks()->syncWithPivotValues($eventRequest->task_id, ['updated_by' => $jWTService->getIdUserToken()]);
+        // attachement/synchronisation des tables pivot (many to many)
+        $event->services()->syncWithPivotValues($eventRequest->service_id, ['updated_by' => $aboutUser->id()]);
 
-            // creation/modification des tables relation hasOne (one to one)
-            if($eventRequest->budget_creation)
-            {
-                if($event->budget()->exists())
-                    $event->budget()->update([
-                        'event_id' => $event->id,
-                        'amount' => $eventRequest->budget_amount,
-                        'infos' => $eventRequest->budget_infos,
-                        'updated_by' => $jWTService->getIdUserToken()
-                    ]);
-                else
-                    Budget::create([
-                        'event_id' => $event->id,
-                        'amount' => $eventRequest->budget_amount,
-                        'infos' => $eventRequest->budget_infos,
-                        'created_by' => $jWTService->getIdUserToken()
-                    ]);
-            } else{
-                if($event->budget()->exists())
-                    $event->budget()->delete();
-            }
-            if($eventRequest->invoice_creation)
-            {
-                if($event->invoice()->exists())
-                    $event->invoice()->update([
-                        'event_id' => $event->id,
-                        'reference' => $eventRequest->invoice_reference,
-                        'infos' => $eventRequest->invoice_infos,
-                        'updated_by' => $jWTService->getIdUserToken()
-                    ]);
-                else
-                    Invoice::create([
-                        'event_id' => $event->id,
-                        'reference' => $eventRequest->invoice_reference,
-                        'infos' => $eventRequest->invoice_infos,
-                        'created_by' => $jWTService->getIdUserToken()
-                    ]);
-            } else{
-                if($event->invoice()->exists())
-                    $event->invoice()->delete();
-            }
-
-            // envoie de la reponse
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'Data succeffully updated'
-            );
-
-        }catch(Exception $e)
+        // creation/modification des tables relation hasOne (one to one)
+        if($eventRequest->budget_creation)
         {
-             // send the success response
-            return $responseService->generateResponseJson(
-                'error',
-                500,
-                'error server to saved the new event in database',
-                [$e]
-            );
+            if($event->budget()->exists())
+                $event->budget()->update([
+                    'event_id' => $event->id,
+                    'amount' => $eventRequest->budget_amount,
+                    'infos' => $eventRequest->budget_infos,
+                    'updated_by' => $aboutUser->id()
+                ]);
+            else
+                Budget::create([
+                    'event_id' => $event->id,
+                    'amount' => $eventRequest->budget_amount,
+                    'infos' => $eventRequest->budget_infos,
+                    'created_by' => $aboutUser->id()
+                ]);
+        } else{
+            if($event->budget()->exists())
+                $event->budget()->delete();
         }
+
+        // envoie de la reponse
+        return $responseService->successfullUpdated('Event');
+
     }
 
+    /**
+     * Display a listing of the resource to update a data
+     */
     public function edit(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Event $event
     )
     {
         // verify the permission
-        $attribute = ['interact'];
-        if (!$permission->resultVote($attribute, $event, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-            'error',
-            404,
-            'Not Authorized'
-            );
-        };
-
-        dd($event->budget()->get()->toArray());
+        if (!$aboutUser->isPermisToCreate($event)) 
+            return $responseService->notAuthorized();
 
         // get the datas
          $datas = [
@@ -442,13 +310,8 @@ class EventController extends Controller
             'places' => Place::all(['id', 'name', 'infos'])->toArray(),
             'packs' => Pack::all(['id', 'name', 'infos'])->toArray()
         ];
-
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Data succeffully getted',
-            $datas
-        );
+        // return the response
+        return $responseService->successfullGetted($datas);
     }
 
     /**
@@ -456,26 +319,14 @@ class EventController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Event $event
     ) {
         // verify the permission
-        $attribute = ['interact'];
-        if (!$permission->resultVote($attribute, $event, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        if (!$aboutUser->isPermisToInteract($event))
+            return $responseService->notAuthorized();
 
         $event->delete();
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Event successfully deleted'
-        );
+        return $responseService->successfullDeleted('Event');
     }
 }

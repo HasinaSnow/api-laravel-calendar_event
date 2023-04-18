@@ -31,8 +31,6 @@ class EventRequest extends FormRequest
             'budget_amount' => 'integer',
             'budget_infos' => 'string',
 
-            'invoice_creation' => 'required|boolean',
-            'invoice_reference' => 'string',
             'invoice_infos' => 'string',
 
             // selections
@@ -46,10 +44,7 @@ class EventRequest extends FormRequest
                 'pack_id' => 'required|exists:packs,id',
 
                 // multiples
-                'service_id' => 'required|array|exists:services,id',
-                'equipement_id' => 'required|array|exists:equipements,id',
-                'task_id' => 'required|array|exists:tasks,id',
-
+                'service_id' => 'required|array|exists:services,id'
         ];
     }
 

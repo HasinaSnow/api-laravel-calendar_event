@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Services\Permission\Voter\AdminVoter;
 use App\Services\Permission\Voter\CreateEventVoter;
 use App\Services\Permission\Voter\CreateServiceUserVoter;
-use App\Services\Permission\Voter\EventServiceVoter;
 use App\Services\Permission\Voter\InteractEventVoter;
 use App\Services\Permission\Voter\InteractServiceUserVoter;
 use App\Services\Permission\Voter\InteractVoter;
