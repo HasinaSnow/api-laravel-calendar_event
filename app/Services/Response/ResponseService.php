@@ -72,7 +72,7 @@ class ResponseService
     {
         return response()->json([
             'status' => 'success',
-            'message' => $subject . 'successffully stored',
+            'message' => $subject . ' successfully stored',
             'token' => $this->token,
             'data' => []
         ], 200);
@@ -120,7 +120,22 @@ class ResponseService
             'message' => 'Not Authorized',
             'token' => $this->token,
             'data' => []
-        ], 404);
+        ], 403);
+    }
+
+    /**
+     * send a server response error 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function errorServer(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error Server',
+            'token' => $this->token,
+            'data' => []
+        ], 500);
     }
 
     /**

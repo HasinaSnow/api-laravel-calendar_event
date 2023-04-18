@@ -45,7 +45,7 @@ class EventController extends Controller
                 $events = $events
                     ->with('pack:id,name')
                     ->where('audience', true) 
-                    ->orWhere('created_by', $aboutUser->id);
+                    ->orWhere('created_by', $aboutUser->id());
             } else {
                 $events = $events
                     ->where('audience', true)

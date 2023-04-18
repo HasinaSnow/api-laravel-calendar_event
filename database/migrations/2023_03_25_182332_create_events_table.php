@@ -18,12 +18,12 @@ return new class extends Migration
             $table->boolean('audience');
             
             // relation one to many
-            $table->foreignId('client_id')->constrained();
-            $table->foreignId('category_id')->constrained();
-            $table->foreignId('confirmation_id')->constrained();
-            $table->foreignId('place_id')->constrained();
-            $table->foreignId('type_id')->constrained();
-            $table->foreignId('pack_id')->constrained();
+            $table->foreignId('client_id')->constrained()->onDelete('cascade');
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->foreignId('confirmation_id')->constrained()->onDelete('cascade');
+            $table->foreignId('place_id')->constrained()->onDelete('cascade');
+            $table->foreignId('type_id')->constrained()->onDelete('cascade');
+            $table->foreignId('pack_id')->constrained()->onDelete('cascade');
             
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();

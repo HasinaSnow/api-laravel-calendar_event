@@ -2,7 +2,7 @@
 |> creation automatique de invoice après creation d'un event
 |> upload de fichier (jpg)
 ## EN COURS :
-|> refactoriser eventcontroller
+|> refactoriser les tables en relation belongsTo avec la table event (categ, client, place, type, confirm)
 
 ## FINI :
 |> migrations et factory des tables (sauf la table invoices)
@@ -45,3 +45,5 @@
             - invoice
     }
 |> installer et apprendre git
+|> refactoriser eventcontroller
+
