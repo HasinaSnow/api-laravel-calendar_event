@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\DepositController;
+use App\Http\Controllers\EquipementController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventServiceController;
 use App\Http\Controllers\PaymentController;
@@ -96,6 +97,7 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
         Route::apiResource('deposits', DepositController::class);
         Route::apiResource('payments', PaymentController::class);
         Route::apiResource('tasks', TaskController::class);
+        Route::apiResource('equipements', EquipementController::class);
 
 });
 

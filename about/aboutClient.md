@@ -1,0 +1,1 @@
+- eventmanager : peut voir et interagir seulement sur les clients crées par lui

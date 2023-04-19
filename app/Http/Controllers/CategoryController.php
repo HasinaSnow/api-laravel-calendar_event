@@ -41,6 +41,14 @@ class CategoryController extends Controller
         $category->infos = $categoryRequest->infos;
         $category->created_by = $aboutUser->id();
 
+        if (
+            Category::where('date', $category->date)
+                ->where('name', $category->category_id)
+                ->where('infos', $category->place_id)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Category');
+
         // send th response
         if($category->save())
             return $responseService->successfullStored('Category');
@@ -77,6 +85,14 @@ class CategoryController extends Controller
         $category->name = $categoryRequest->name;
         $category->infos = $categoryRequest->infos;
         $category->updated_by = $aboutUser->id();
+
+        if (
+            Category::where('date', $category->date)
+                ->where('name', $category->category_id)
+                ->where('infos', $category->place_id)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Category');
 
         if($category->update())
             return $responseService->successfullUpdated('Category');

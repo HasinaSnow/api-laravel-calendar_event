@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Task extends Model
@@ -20,4 +21,13 @@ class Task extends Model
         return $this->belongsToMany(Event::class)
         ->withPivot(['check', 'attribute_to', 'created_by', 'updated_by']);
     } 
+
+    /**
+     * get the service (one to many)
+     * 
+     */
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
+    }
 }

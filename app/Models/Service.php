@@ -39,4 +39,13 @@ class Service extends Model
     {
         return $this->hasMany(Equipement::class);
     }
+
+    /**
+     * Get the tasks for the event service (one to many)
+     * 
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
 }

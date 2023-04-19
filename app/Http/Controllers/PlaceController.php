@@ -2,28 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AboutUser;
+use App\Http\Requests\PlaceRequest;
 use App\Models\Place;
-use App\Services\JWT\JWTService;
-use App\Services\Permission\Voter\VoteService;
 use App\Services\Response\ResponseService;
-use Illuminate\Http\Request;
 
 class PlaceController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(ResponseService $responseService)
+    public function index(
+        ResponseService $responseService,
+        AboutUser $aboutUser
+    ) 
     {
-        $places = Place::orderby('id', 'desc')->get()->toArray();
+
+        $places = Place::orderby('id', 'desc')
+            ->get(['id', 'name', 'created_by', 'updated_by', 'created_at', 'updated_at'])
+            ->toArray();
 
         // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'All places successfully getted',
-            $places
-        );
+        return $responseService->successfullGetted($places, 'Place');
     }
 
     /**
@@ -31,51 +31,29 @@ class PlaceController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        PlaceRequest $placeRequest,
+        AboutUser $aboutUser,
         Place $place
     )
     {
-        $attribute = ['create'];
-
-        // verifie the permission
-        if (!$permission->resultVote($attribute, $place, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
+        // verify the permission
+        if(!$aboutUser->isPermisToCreate($place))
+            return $responseService->notAuthorized();
 
         // store in the database
-        $place = new Place();
-        $place->name = $request->name;
-        $place->infos = $request->infos;
-        $place->created_by = $jWTService->getIdUserToken();
+        $place = new Place;
+        $place->name = $placeRequest->name;
+        $place->infos = $placeRequest->infos;
+        $place->created_by = $aboutUser->id();
 
-        if($place->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'place successfully saved',
-            );
+        if (
+            Place::where('name', $placeRequest->name)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Place');
+
+        if($place->save())
+            return $responseService->successfullStored('Place');
 
     }
 
@@ -84,16 +62,44 @@ class PlaceController extends Controller
      */
     public function show(
         ResponseService $responseService, 
+        AboutUser $aboutUser,
         Place $place
     )
     {
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'place successfully showed',
-            $place->toArray()
-        );
+        // get data in db
+        $data = ['place' => $place->toArray()];
+
+        if($aboutUser->isAdmin())
+        {
+            $data['events'] = $place->events()->with(
+                [
+                    'services:id,name',
+                    'category:id,name',
+                    'place:id,name',
+                    'type:id,name',
+                    'confirmation:id,name'
+                ]
+            );
+            
+        } else if($aboutUser->isEventManager())
+        {
+            if($place->created_by === $aboutUser->id())
+                $data['events'] = $place->events()
+                ->with(
+                    [
+                        'services:id,name',
+                        'category:id,name',
+                        'place:id,name',
+                        'type:id,name',
+                        'confirmation:id,name'
+                    ]
+                )
+                ->get()
+                ->where('created_by', $aboutUser->id());
+        }
+
+        return $responseService->successfullGetted($data, 'Place');
+        
     }
 
     /**
@@ -101,49 +107,27 @@ class PlaceController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        PlaceRequest $placeRequest,
+        AboutUser $aboutUser,
         Place $place
-    )
-    {
-        $attribute = ['interact'];
+    ) {
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($place))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $place, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        // update in the database
+        $place->name = $placeRequest->name;
+        $place->infos = $placeRequest->infos;
+        $place->updated_by = $aboutUser->id();
 
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
+        if (
+            Place::where('name', $placeRequest->name)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Place');
 
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
-
-        // store in the database
-        $place->name = $request->name;
-        $place->infos = $request->infos;
-        $place->updated_by = $jWTService->getIdUserToken();
-        
-        if($place->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'client successfully saved',
-            );
+        if($place->update());
+            return $responseService->successfullUpdated('Place');
 
     }
 
@@ -152,34 +136,16 @@ class PlaceController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Place $place
     )
     {
-        $attribute = ['interact'];
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($place))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $place, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        if (!isset($place))
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Place not found'
-            );
-
-        $place->delete();
-        return $responseService->generateResponseJson(
-            'succes',
-            200,
-            'Place successfully deleted'
-        );
+            // try to delete the place
+        if($place->delete())
+            return $responseService->successfullDeleted('Place');
     }
 }

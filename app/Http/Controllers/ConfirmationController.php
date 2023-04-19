@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AboutUser;
+use App\Http\Requests\ConfirmationRequest;
 use App\Models\Confirmation;
 use App\Services\JWT\JWTService;
 use App\Services\Permission\Voter\VoteService;
@@ -13,17 +15,12 @@ class ConfirmationController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(ResponseService $responseService)
+    public function index(
+        ResponseService $responseService
+    )
     {
         $confirmations = Confirmation::orderby('id', 'desc')->get()->toArray();
-
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'All confirmation successfully getted',
-            $confirmations
-        );
+        return $responseService->successfullGetted($confirmations, 'List of Confirmation');
     }
 
     /**
@@ -31,51 +28,31 @@ class ConfirmationController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        ConfirmationRequest $confirmationRequest,
+        AboutUser $aboutUser,
         Confirmation $confirmation
     )
     {
-        $attribute = ['create'];
-
-        // verifie the permission
-        if (!$permission->resultVote($attribute, $confirmation, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
+        // verify the permission
+        if(!$aboutUser->isPermisToCreate($confirmation))
+            return $responseService->notAuthorized();
 
         // store in the database
         $confirmation = new Confirmation();
-        $confirmation->name = $request->name;
-        $confirmation->infos = $request->infos;
-        $confirmation->created_by = $jWTService->getIdUserToken();
+        $confirmation->name = $confirmationRequest->name;
+        $confirmation->infos = $confirmationRequest->infos;
+        $confirmation->created_by = $aboutUser->id();
+
+        if (
+            Confirmation::where('date', $confirmationRequest->date)
+                ->where('name', $confirmationRequest->category_id)
+                ->where('infos', $confirmationRequest->place_id)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Confirmation');
 
         if($confirmation->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'confirmation successfully saved',
-            );
+            return $responseService->successfullStored('Confirmation');
     }
 
     /**
@@ -83,16 +60,41 @@ class ConfirmationController extends Controller
      */
     public function show(
         ResponseService $responseService,
+        AboutUser $aboutUser, 
         Confirmation $confirmation
     )
     {
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Confirmation successfully showed',
-            $confirmation->toArray()
-        );
+        $data = ['confirmation' => $confirmation->toArray()];
+
+        if($aboutUser->isAdmin())
+        {
+            $data['events'] = $confirmation->events()->with(
+                [
+                    'services:id,name',
+                    'category:id,name',
+                    'place:id,name',
+                    'type:id,name',
+                    'confirmation:id,name'
+                ]
+            );
+        }else if($aboutUser->isEventManager())
+        {
+            $data['events'] = $confirmation->events()
+                ->with(
+                    [
+                        'services:id,name',
+                        'category:id,name',
+                        'place:id,name',
+                        'type:id,name',
+                        'confirmation:id,name'
+                    ]
+                )
+            ->get()
+            ->where('created_by', $aboutUser->id());
+        }
+
+        return $responseService->successfullGetted($data, 'Confirmation');
+
     }
 
     /**
@@ -100,48 +102,30 @@ class ConfirmationController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
-        Confirmation $confirmation)
+        ConfirmationRequest $confirmationRequest,
+        AboutUser $aboutUser,
+        Confirmation $confirmation
+    )
     {
-        $attribute = ['interact'];
-
-        if (!$permission->resultVote($attribute, $confirmation, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($confirmation))
+            return $responseService->notAuthorized();
 
         // store in the database
-        $confirmation->name = $request->name;
-        $confirmation->infos = $request->infos;
-        $confirmation->updated_by = $jWTService->getIdUserToken();
+        $confirmation->name = $confirmationRequest->name;
+        $confirmation->infos = $confirmationRequest->infos;
+        $confirmation->updated_by = $aboutUser->id();
+
+        if (
+            Confirmation::where('date', $confirmationRequest->date)
+                ->where('name', $confirmationRequest->category_id)
+                ->where('infos', $confirmationRequest->place_id)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Confirmation');
         
         if($confirmation->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'Confirmation successfully saved',
-            );
+            return $responseService->successfullUpdated('Confirmation');
     }
 
     /**
@@ -149,33 +133,15 @@ class ConfirmationController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
-        Confirmation $confirmation)
+        AboutUser $aboutUser,
+        Confirmation $confirmation
+    )
     {
-        $attribute = ['interact'];
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($confirmation))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $confirmation, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        if (!isset($confirmation))
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Confirmation not found'
-            );
-
-        $confirmation->delete();
-        return $responseService->generateResponseJson(
-            'succes',
-            200,
-            'Confirmation successfully deleted'
-        );
+        if($confirmation->delete())
+         return $responseService->successfullDeleted('Confirmation');
     }
 }

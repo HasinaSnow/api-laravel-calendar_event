@@ -33,12 +33,14 @@ class DatabaseSeeder extends Seeder
     {
 
         $users = User::factory(10)->create();
-        $permissions = Permission::factory(5)
+        $permissions = Permission::factory(6)
             ->sequence(
                 ['name' => 'role_admin'],
                 ['name' => 'role_permission_user_manager'],
-                ['name' => 'role_service_user_manager'],
+                ['name' => 'role_service_manager'],
                 ['name' => 'role_event_manager'],
+                ['name' => 'role_task_manager'],
+                ['name' => 'role_equipement_manager'],
                 ['name' => 'role_moderator']
             )->create()
             ->each(function($permission) use($users) {
@@ -73,7 +75,7 @@ class DatabaseSeeder extends Seeder
                 ]);
             });
         $events = Event::factory(10)->create()
-            ->each(function($event) use($services, $equipements, $tasks) {
+            ->each(function($event) use ($services, $equipements, $tasks) {
                 // event_service (many to many)
                 $event->services()->attach($services->random(3), [
                     'created_by' => User::all()->random()->id

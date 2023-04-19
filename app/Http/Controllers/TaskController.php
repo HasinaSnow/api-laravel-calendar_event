@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AboutUser;
 use App\Http\Requests\TaskRequest;
 use App\Models\Task;
 use App\Services\JWT\JWTService;
@@ -15,33 +16,22 @@ class TaskController extends Controller
      * Display a listing of the resource.
      */
     public function index(
-        JWTService $jWTService,
         ResponseService $responseService,
-        VoteService $permission,
-        Task $task
+        AboutUser $aboutUser
     )
     {
-        $attribute = [];
 
-        if (!$permission->resultVote($attribute, $task, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        if($aboutUser->isAdmin())
+            $tasks = Task::orderby('id', 'desc')->get()->toArray();
+        else if($aboutUser->isTaskManager())
+            $tasks = Task::orderby('id', 'desc')
+                ->whereIn('service_id', $aboutUser->idServices())
+                ->with('service:id,name')
+                ->get()->toArray();
+        else
+            return $responseService->notAuthorized();
 
-         // get all clients in the database
-         $tasks = Task::orderby('id', 'desc')->get()->toArray();
-
-         // send the response
-         return $responseService->generateResponseJson(
-             'success',
-             200,
-             'All tasks successfully getted',
-             $tasks
-         );
+        return $responseService->successfullGetted($tasks, 'Tasks');
     }
 
     /**
@@ -49,39 +39,40 @@ class TaskController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
-        Task $task,
-        TaskRequest $taskRequest
+        TaskRequest $taskRequest,
+        AboutUser $aboutUser,
+        Task $task
     )
     {
-        $attribute = ['create'];
+        // verify the permission
+        if(!$aboutUser->isPermisToCreate($task))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $task, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        // store in the database
+        $task = new Task();
+        $task->name = $taskRequest->name;
+        $task->infos = $taskRequest->infos;
+        $task->service_id = $taskRequest->service_id;
+        $task->created_by = $aboutUser->id();
 
-        dd($taskRequest->toArray());
-         // store in the database
-         $task = new Task();
-         $task->name = $taskRequest->name;
-         $task->infos = $taskRequest->infos;
-         
-         $task->created_by = $jWTService->getIdUserToken();
+        // verify if the service_id
+        if(
+            !$aboutUser->isAdmin() &&
+            !in_array($taskRequest->service_id, $aboutUser->idServices())
+        )
+            return $responseService->errorServer();
+
+        // verify if data already exist in db
+        if (
+            Task::where('name', $taskRequest->name)
+                ->where('service_id', $taskRequest->service_id)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Task');
  
-         if ($task->save());
- 
-         // send the response
-         return $responseService->generateResponseJson(
-             'success',
-             200,
-             'Task successfully saved',
-         );
+        if ($task->save());
+            return $responseService->successfullStored('Task');
+
     }
 
     /**
@@ -89,28 +80,23 @@ class TaskController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Task $task
     )
     {
-        $attribute = ['interact'];
-        if (!$permission->resultVote($attribute, $task, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        $datas = [
+            'task' => $task->toArray(),
+            'service' => $task->service()->get()->toArray()
+        ];
+        // verify the permission
+        if($aboutUser->isAdmin())
+            return $responseService->successfullGetted($datas, 'Task');
+        else if($aboutUser->isTaskManager())
+            if(in_array($task->service_id, $aboutUser->idServices()))
+                return $responseService->successfullGetted($datas, 'Task');
 
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Task successfully showed',
-            $task->toArray()
-        );
+        return $responseService->notFound();
+
     }
 
     /**
@@ -118,37 +104,36 @@ class TaskController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
-        Task $task,
-        TaskRequest $taskRequest
+        TaskRequest $taskRequest,
+        AboutUser $aboutUser,
+        Task $task
     )
     {
-        $attribute = ['interact'];
+        if(!$aboutUser->isPermisToInteract($task))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $task, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        // updated in the database
+        $task->name = $taskRequest->name;
+        $task->infos = $taskRequest->infos;
+        $task->service_id = $taskRequest->service_id;
+        $task->updated_by = $aboutUser->id();
 
-         // updated in the database
-         $task->name = $taskRequest->name;
-         $task->infos = $taskRequest->infos;
-         
-         $task->updated_by = $jWTService->getIdUserToken();
+        // verify if the service_id
+        if(
+            !$aboutUser->isAdmin() &&
+            !in_array($taskRequest->service_id, $aboutUser->idServices())
+        )
+            return $responseService->errorServer();
+
+        if (
+            Task::where('name', $taskRequest->name)
+                ->where('service_id', $taskRequest->service_id)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Task');
  
-         if ($task->save());
- 
-         // send the response
-         return $responseService->generateResponseJson(
-             'success',
-             200,
-             'Task successfully updated',
-         );
+        if ($task->save())
+            return $responseService->successfullUpdated('Task');
     }
 
     /**
@@ -156,27 +141,15 @@ class TaskController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Task $task
     )
     {
-        $attribute = ['interact'];
+        if(!$aboutUser->isPermisToInteract($task))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $task, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        $task->delete();
-        return $responseService->generateResponseJson(
-            'succes',
-            200,
-            'Task successfully deleted'
-        );
+        if($task->delete())
+            return $responseService->successfullDeleted('Task');
+        
     }
 }

@@ -18,18 +18,17 @@ class VoteService
      *
      * @var instance
      */
-
     public function __construct(array $voters)
     {
         $this->voters = $voters;
     }
 
     /**
-     * verifie a permisssion of user
+     * verifie the vote result of user
      *
-     * @param User $user
-     * @param string $permission
+     * @param array|string|null $attributes
      * @param mixed $subject
+     * @param mixed $jwtService
      * @return boolean
      */
     public function resultVote(array|string|null $attributes, $subject, $JWTService) : bool
@@ -38,7 +37,6 @@ class VoteService
         {
             $votes[] = $this->voterCan($voter, $attributes, $subject, $JWTService);
         }
-
         return in_array(true, $votes);
 
     }

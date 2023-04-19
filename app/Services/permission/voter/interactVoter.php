@@ -3,7 +3,9 @@ namespace App\Services\Permission\Voter;
 
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\Equipement;
 use App\Models\Place;
+use App\Models\Task;
 use App\Models\Type;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +28,7 @@ class InteractVoter implements VoterInterface
                 $subject instanceof Client ||
                 $subject instanceof Category ||
                 $subject instanceof Place ||
-                $subject instanceof Type 
+                $subject instanceof Type
             )
         );
     }

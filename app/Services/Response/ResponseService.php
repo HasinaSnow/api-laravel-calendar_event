@@ -124,6 +124,21 @@ class ResponseService
     }
 
     /**
+     * send a not found response 
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function notFound(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Not found',
+            'token' => $this->token,
+            'data' => []
+        ], 404);
+    }
+
+    /**
      * send a server response error 
      * 
      * @return Illuminate\Http\JsonResponse

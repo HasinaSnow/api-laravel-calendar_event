@@ -21,10 +21,8 @@ class ClientFactory extends Factory
     public function definition(): array
     {
         return [
-            // 'name' => fake()->name(),
-            // 'infos' => fake()->sentences()
-            'name' => $this->faker->name,
-            'infos' => $this->faker->paragraph(),
+            'name' => fake()->name(),
+            'infos' => fake()->sentence(),
             'created_by' => User::all()->random()->id,
             'updated_by' => User::all()->random()->id,
         ];

@@ -1,1 +1,0 @@
-- le champ infos n'est pas public (seulement pour l'admin)

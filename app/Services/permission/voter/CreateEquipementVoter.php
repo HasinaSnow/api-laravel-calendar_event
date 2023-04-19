@@ -1,10 +1,10 @@
 <?php
 namespace App\Services\Permission\Voter;
 
-use App\Models\Task;
+use App\Models\Equipement;
 use Illuminate\Support\Facades\DB;
 
-class CreateTaskVoter implements VoterInterface
+class CreateEquipementVoter implements VoterInterface
 {
     const CREATE = 'create';
 
@@ -20,7 +20,7 @@ class CreateTaskVoter implements VoterInterface
         return (
             in_array(self::CREATE, $attributes ) && 
             (
-                $subject instanceof Task 
+                $subject instanceof Equipement 
             )
         );
     }
@@ -36,16 +36,16 @@ class CreateTaskVoter implements VoterInterface
     public function vote(array $attributes, $subject = null, array $dataUser) : bool
     {
 
-        $idRoleTaskManager = DB::select(
+        $idRoleEquipementManager = DB::select(
             'SELECT user_id
             FROM permission_user
             INNER JOIN permissions
                 ON permissions.id = permission_user.permission_id
             WHERE permissions.name = ?',
-            ['role_task_manager']
+            ['role_equipement_manager']
         );
 
-        foreach($idRoleTaskManager as $once)
+        foreach($idRoleEquipementManager as $once)
            $roles[] = $once->user_id;
         
         return (in_array($dataUser['id'], $roles));

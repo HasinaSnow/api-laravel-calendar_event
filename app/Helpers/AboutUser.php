@@ -66,6 +66,26 @@ class AboutUser
     }
 
     /**
+     * verify if the current user have a role eqipementManager
+     * 
+     * @return boolean
+     */
+    public function isTaskManager(): bool
+    {
+        return in_array(AboutRole::taskManager(), $this->idRoles());
+    }
+
+    /**
+     * verify if the current user have a role eventManager
+     * 
+     * @return boolean
+     */
+    public function isEquipementManager(): bool
+    {
+        return in_array(AboutRole::equipementManager(), $this->idRoles());
+    }
+
+    /**
      * verify if the current user have a role moderator
      * 
      * @return boolean
@@ -129,7 +149,6 @@ class AboutUser
 
         foreach ($idUserServices as $once)
             $userServices[] = $once->service_id;
-
         return $userServices;
     }
 }

@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class TaskRequest extends FormRequest
+class ConfirmationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -16,7 +16,7 @@ class TaskRequest extends FormRequest
         return true;
     }
 
-    /**
+     /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
@@ -24,9 +24,8 @@ class TaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string',
-            'infos' => 'string',
-            'service_id' => 'required|exists:services,id'
+            'name' => 'required|string|max:100',
+            'infos' => 'string'
         ];
     }
 

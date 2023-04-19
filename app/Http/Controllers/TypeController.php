@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AboutUser;
+use App\Http\Requests\TypeRequest;
 use App\Models\Type;
 use App\Services\JWT\JWTService;
 use App\Services\Permission\Voter\VoteService;
@@ -13,17 +15,12 @@ class TypeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(ResponseService $responseService)
+    public function index(
+        ResponseService $responseService
+    )
     {
         $types = Type::orderby('id', 'desc')->get()->toArray();
-
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'All types successfully getted',
-            $types
-        );
+        return $responseService->successfullGetted($types, 'List of Type');
     }
 
     /**
@@ -31,68 +28,71 @@ class TypeController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        TypeRequest $typeRequest,
+        AboutUser $aboutUser,
         Type $type
     )
     {
-        $attribute = ['create'];
-
-        // verifie the permission
-        if (!$permission->resultVote($attribute, $type, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
+        // verify the permission
+        if(!$aboutUser->isPermisToCreate($type))
+            return $responseService->notAuthorized();
 
         // store in the database
         $type = new Type();
-        $type->name = $request->name;
-        $type->infos = $request->infos;
-        $type->created_by = $jWTService->getIdUserToken();
+        $type->name = $typeRequest->name;
+        $type->infos = $typeRequest->infos;
+        $type->created_by = $aboutUser->id();
+
+        if (
+            Type::where('name', $typeRequest->name)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Type');
 
         if($type->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'Type successfully saved',
-            );
+            return $responseService->successfullStored('Type');
     }
 
     /**
      * Display the specified resource.
      */
     public function show(
-        ResponseService $responseService, 
+        ResponseService $responseService,
+        AboutUser $aboutUser, 
         Type $type
     )
     {
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Type successfully showed',
-            $type->toArray()
-        );
+        $data = ['type' => $type->toArray()];
+
+        if($aboutUser->isAdmin())
+        {
+            $data['events'] = $type->events()->with(
+                [
+                    'services:id,name',
+                    'category:id,name',
+                    'place:id,name',
+                    'type:id,name',
+                    'confirmation:id,name'
+                ]
+            );
+        }else if($aboutUser->isEventManager())
+        {
+            $data['events'] = $type->events()
+                ->with(
+                    [
+                        'services:id,name',
+                        'category:id,name',
+                        'place:id,name',
+                        'type:id,name',
+                        'confirmation:id,name'
+                    ]
+                )
+            ->get()
+            ->where('created_by', $aboutUser->id());
+        }
+
+        return $responseService->successfullGetted($data, 'Type');
+
     }
 
     /**
@@ -100,49 +100,28 @@ class TypeController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        TypeRequest $typeRequest,
+        AboutUser $aboutUser,
         Type $type
     )
     {
-        $attribute = ['interact'];
-
-        if (!$permission->resultVote($attribute, $type, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($type))
+            return $responseService->notAuthorized();
 
         // store in the database
-        $type->name = $request->name;
-        $type->infos = $request->infos;
-        $type->updated_by = $jWTService->getIdUserToken();
+        $type->name = $typeRequest->name;
+        $type->infos = $typeRequest->infos;
+        $type->updated_by = $aboutUser->id();
+
+        if (
+            Type::where('name', $typeRequest->name)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Type');
         
         if($type->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'Type successfully saved',
-            );
+            return $responseService->successfullUpdated('Type');
     }
 
     /**
@@ -150,34 +129,15 @@ class TypeController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Type $type
     )
     {
-        $attribute = ['interact'];
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($type))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $type, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        if (!isset($type))
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Type not found'
-            );
-
-        $type->delete();
-        return $responseService->generateResponseJson(
-            'succes',
-            200,
-            'Type successfully deleted'
-        );
+        if($type->delete())
+         return $responseService->successfullDeleted('Type');
     }
 }

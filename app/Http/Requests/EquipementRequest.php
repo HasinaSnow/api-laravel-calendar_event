@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class TaskRequest extends FormRequest
+class EquipementRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,6 +25,7 @@ class TaskRequest extends FormRequest
     {
         return [
             'name' => 'required|string',
+            'price' => 'required|integer|numeric',
             'infos' => 'string',
             'service_id' => 'required|exists:services,id'
         ];

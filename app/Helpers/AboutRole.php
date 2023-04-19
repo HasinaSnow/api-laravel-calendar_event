@@ -36,6 +36,34 @@ class AboutRole
     }
 
     /**
+     * get the id role task manager
+     * @return int
+     */
+    public  static function taskManager() : int
+    {
+        return DB::selectOne(
+            'SELECT id
+            FROM permissions
+            WHERE name = ?',
+            ['role_task_manager']
+        )->id;
+    }
+
+    /**
+     * get the id role equipement manager
+     * @return int
+     */
+    public  static function equipementManager() : int
+    {
+        return DB::selectOne(
+            'SELECT id
+            FROM permissions
+            WHERE name = ?',
+            ['role_equipement_manager']
+        )->id;
+    }
+
+    /**
      * get the id role moderator
      * @return int
      */

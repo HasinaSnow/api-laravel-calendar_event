@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AboutUser;
+use App\Http\Requests\ClientRequest;
 use App\Models\Client;
-use App\Services\JWT\JWTService;
-use App\Services\Permission\Voter\VoteService;
 use App\Services\Response\ResponseService;
-use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
@@ -14,19 +13,25 @@ class ClientController extends Controller
      * Display a listing of the resource.
      */
     public function index(
-        ResponseService $responseService
-    ) {
+        ResponseService $responseService,
+        AboutUser $aboutUser
+    ) 
+    {
 
-        // get all clients in the database
-        $clients = Client::orderby('id', 'desc')->get()->toArray();
+        if($aboutUser->isAdmin())
+            $clients = Client::orderby('id', 'desc')
+                ->get(['id', 'name', 'created_by', 'updated_by', 'created_at', 'updated_at'])
+                ->toArray();
+        else if($aboutUser->isEventManager())
+            $clients = Client::orderby('id', 'desc')
+                ->where('created_by', $aboutUser->id())
+                ->get(['id', 'name', 'created_by', 'updated_by', 'created_at', 'updated_at'])
+                ->toArray();
+        else
+            return $responseService->notAuthorized();
 
         // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'All clients successfully getted',
-            $clients
-        );
+        return $responseService->successfullGetted($clients, 'Client');
     }
 
     /**
@@ -34,67 +39,80 @@ class ClientController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        ClientRequest $clientRequest,
+        AboutUser $aboutUser,
         Client $client
     )
     {
 
-        $attribute = ['create'];
-
-        if (!$permission->resultVote($attribute, $client, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
+        // verify the permission
+        if(!$aboutUser->isPermisToCreate($client))
+            return $responseService->notAuthorized();
 
         // store in the database
         $client = new Client;
-        $client->name = $request->name;
-        $client->infos = $request->infos;
-        $client->created_by = $jWTService->getIdUserToken();
+        $client->name = $clientRequest->name;
+        $client->infos = $clientRequest->infos;
+        $client->created_by = $aboutUser->id();
 
-        if($client->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'client successfully saved',
-            );
+        if (
+            Client::where('name', $clientRequest->name)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Client');
+
+        if($client->save())
+            return $responseService->successfullStored('Client');
 
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(ResponseService $responseService, Client $client)
+    public function show(
+        ResponseService $responseService, 
+        AboutUser $aboutUser,
+        Client $client
+    )
     {
+        // get data in db
+        $data = ['client' => $client->toArray()];
 
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'client successfully showed',
-            $client->toArray()
-        );
+        if($aboutUser->isAdmin())
+        {
+            $data['events'] = $client->events()->with(
+                [
+                    'services:id,name',
+                    'category:id,name',
+                    'place:id,name',
+                    'type:id,name',
+                    'confirmation:id,name'
+                ]
+            );
+            
+           
+        } else if($aboutUser->isEventManager())
+        {
+            if($client->created_by === $aboutUser->id())
+                $data['events'] = $client->events()
+                ->with(
+                    [
+                        'services:id,name',
+                        'category:id,name',
+                        'place:id,name',
+                        'type:id,name',
+                        'confirmation:id,name'
+                    ]
+                )
+                ->get()
+                ->where('created_by', $aboutUser->id());
+            else
+                $data = [];
+        } else
+            return $responseService->notAuthorized();
+
+        return $responseService->successfullGetted($data, 'Client');
+        
     }
 
     /**
@@ -102,49 +120,27 @@ class ClientController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        Request $request,
-        JWTService $jWTService,
-        VoteService $permission,
+        ClientRequest $clientRequest,
+        AboutUser $aboutUser,
         Client $client
     ) {
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($client))
+            return $responseService->notAuthorized();
 
-        $attribute = ['interact'];
+        // update in the database
+        $client->name = $clientRequest->name;
+        $client->infos = $clientRequest->infos;
+        $client->updated_by = $aboutUser->id();
 
-        if (!$permission->resultVote($attribute, $client, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        if (
+            Client::where('name', $clientRequest->name)
+                ->exists()
+        ) 
+            return $responseService->alreadyExist('Client');
 
-        // verifie the datas sended
-        if (!isset($request->name, $request->infos))
-            return $responseService->generateResponseJson(
-                'error',
-                401,
-                'Missing data'
-            );
-
-        // validate the data
-        $this->validate($request, array(
-            'name' => 'required|string|max:255',
-            'infos' => 'string'
-        ));
-
-        // store in the database
-        $client->name = $request->name;
-        $client->infos = $request->infos;
-        $client->updated_by = $jWTService->getIdUserToken();
-
-        if($client->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'client successfully saved',
-            );
+        if($client->update());
+            return $responseService->successfullUpdated('Client');
 
     }
 
@@ -153,34 +149,16 @@ class ClientController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Client $client
     )
     {
-        $attribute = ['interact'];
+        // verify the permission
+        if(!$aboutUser->isPermisToInteract($client))
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $client, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        if (!isset($client))
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Client not found'
-            );
-
-        $client->delete();
-        return $responseService->generateResponseJson(
-            'succes',
-            200,
-            'Client successfully deleted'
-        );
+            // try to delete the client
+        if($client->delete())
+            return $responseService->successfullDeleted('Client');
     }
 }
