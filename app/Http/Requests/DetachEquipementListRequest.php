@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class DetachTaskListRequest extends FormRequest
+class DetachEquipementListRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,8 +24,8 @@ class DetachTaskListRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tasks' => 'required|array',
-            'tasks.*' => 'required|integer|exists:tasks,id'
+            'equipements' => 'required|array',
+            'tasks.*' => 'required|integer|exists:equipements,id'
         ];
     }
 

@@ -8,7 +8,10 @@ use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EquipementController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventEquipement;
+use App\Http\Controllers\EventEquipementController;
 use App\Http\Controllers\EventServiceController;
+use App\Http\Controllers\EventTaskController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ServiceUserController;
@@ -80,15 +83,20 @@ Route::post('login', [AccountController::class, 'login']);
 Route::post('logout', [AccountController::class, 'logout']);
 
 Route::group(['middleware' => 'isAuthJWT'], function() {
-
-        Route::post('events/{event}/tasks/attachList', [EventController::class, 'attachTaskList']);
-        Route::delete('events/{event}/tasks/detachList', [EventController::class, 'detachTaskList']);
-        Route::put('events/{event}/tasks/{task}/attribute', [EventController::class, 'attributeTask']);
-        Route::put('events/{event}/tasks/attributeList', [EventController::class, 'attributeTaskList']);
-        Route::put('events/{event}/tasks/expirationList', [EventController::class, 'expirationTaskList']);
-        Route::put('events/{event}/tasks/{task}/check', [EventController::class, 'checkTask']);
-        Route::get('events/{event}/taskList', [EventController::class, 'showTaskList']);
+        
         Route::resource('events', EventController::class);
+
+        Route::get('events/{event}/taskList', [EventTaskController::class, 'showTaskListAttached']);
+        Route::post('events/{event}/tasks/attachList', [EventTaskController::class, 'attachTaskList']);
+        Route::delete('events/{event}/tasks/detachList', [EventTaskController::class, 'detachTaskList']);
+        Route::put('events/{event}/tasks/{task}/attribute', [EventTaskController::class, 'attributeTask']);
+        Route::put('events/{event}/tasks/attributeList', [EventTaskController::class, 'attributeTaskList']);
+        Route::put('events/{event}/tasks/expirationList', [EventTaskController::class, 'expirationTaskList']);
+        Route::put('events/{event}/tasks/{task}/check', [EventTaskController::class, 'checkTask']);
+        
+        Route::get('events/{event}/equipementList', [EventEquipementController::class, 'showEquipementListAttached']);
+        Route::post('events/{event}/equipements/attachList', [EventEquipementController::class, 'attachEquipementList']);
+        Route::delete('events/{event}/equipements/detachList', [EventEquipementController::class, 'detachEquipementList']);
         
         Route::apiResource('clients', ClientController::class);
         Route::apiResource('places', PlaceController::class);

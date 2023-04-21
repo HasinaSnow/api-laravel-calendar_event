@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
 
             $table->string('name');
-            $table->unsignedInteger('price');
-            $table->text('infos');
+            $table->unsignedInteger('price')->default(0);
+            $table->text('infos')->nullable();
 
             $table->foreignId('service_id')->constrained()->onDelete('cascade');
             

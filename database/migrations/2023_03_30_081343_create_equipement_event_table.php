@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('equipement_id')->constrained()->onDelete('cascade');
             $table->foreignId('event_id')->constrained()->onDelete('cascade');
             
-            $table->integer('amount');
+            $table->integer('amount')->default(0);
             $table->unsignedInteger('quantity')->default(0);
 
             $table->unsignedBigInteger('created_by');
