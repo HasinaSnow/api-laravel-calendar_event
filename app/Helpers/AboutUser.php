@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Models\User;
 use App\Services\JWT\JWTService;
 use App\Services\Permission\Voter\VoteService;
 use Illuminate\Database\Eloquent\Model;
@@ -150,5 +151,21 @@ class AboutUser
         foreach ($idUserServices as $once)
             $userServices[] = $once->service_id;
         return $userServices;
+    }
+
+    /**
+     *  Get the id services of user specified
+     * @param int $user the user specified
+     * 
+     * @return array $idServices
+     */
+    public function idServicesOfUserSpecified(int $idUser): array
+    {
+        $services = User::findorfail($idUser)->services()->get(['id'])->toArray();
+        foreach($services as $service)
+        {
+            $idServices[] = $service['id'];
+        }
+        return $idServices;
     }
 }

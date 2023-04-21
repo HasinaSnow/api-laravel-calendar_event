@@ -75,16 +75,21 @@ use Illuminate\Support\Facades\Route;
 
 // // /************************** AUTHENTIFICATION ***************************/
 
-
-
 Route::post('register', [AccountController::class, 'register']);
 Route::post('login', [AccountController::class, 'login']);
 Route::post('logout', [AccountController::class, 'logout']);
 
 Route::group(['middleware' => 'isAuthJWT'], function() {
 
+        Route::post('events/{event}/tasks/attachList', [EventController::class, 'attachTaskList']);
+        Route::delete('events/{event}/tasks/detachList', [EventController::class, 'detachTaskList']);
+        Route::put('events/{event}/tasks/{task}/attribute', [EventController::class, 'attributeTask']);
+        Route::put('events/{event}/tasks/attributeList', [EventController::class, 'attributeTaskList']);
+        Route::put('events/{event}/tasks/expirationList', [EventController::class, 'expirationTaskList']);
+        Route::put('events/{event}/tasks/{task}/check', [EventController::class, 'checkTask']);
+        Route::get('events/{event}/taskList', [EventController::class, 'showTaskList']);
         Route::resource('events', EventController::class);
-
+        
         Route::apiResource('clients', ClientController::class);
         Route::apiResource('places', PlaceController::class);
         Route::apiResource('types', TypeController::class);

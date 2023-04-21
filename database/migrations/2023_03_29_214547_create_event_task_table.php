@@ -16,10 +16,12 @@ return new class extends Migration
             $table->foreignId('event_id')->constrained()->constrained()->onDelete('cascade');
             $table->foreignId('task_id')->constrained()->constrained()->onDelete('cascade');
 
-            $table->boolean('check');
-            $table->date('expiration');
+            $table->boolean('check')->default(false);
+            $table->datetime('check_at')->nullable()->default(null);
+            $table->datetime('expiration')->nullable()->default(null);
 
-            $table->unsignedBigInteger('attribute_to');
+            $table->unsignedBigInteger('attribute_to')->nullable( )->default(null);
+            $table->datetime('attribute_at')->nullable()->default(null);
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->foreign('attribute_to')->references('id')->on('users');

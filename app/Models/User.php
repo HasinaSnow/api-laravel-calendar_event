@@ -52,7 +52,7 @@ class User extends Authenticatable
     public function services() : BelongsToMany
     {
         return $this->belongsToMany(Service::class)
-            ->withPivot('created_by', 'updaeted_by');
+            ->withPivot('created_by', 'updated_by');
     }
 
     /**

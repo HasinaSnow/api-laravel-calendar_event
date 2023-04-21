@@ -79,6 +79,32 @@ class ResponseService
     }
 
     /**
+     * send a successfull attached response
+     */
+    public function successfullAttached(string $subject = 'Data', string $with = 'current post'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => $subject . ' successfully attached with ' . $with,
+            'token' => $this->token,
+            'data' => []
+        ],200);
+    }
+
+    /**
+     * send a succefull detached response 
+     */
+    public function successfullDetached(string $subject = 'Data', string $with = 'current post'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'message' => $subject . ' successfully detached with ' . $with,
+            'token' => $this->token,
+            'data' => []
+        ],200);
+    }
+
+    /**
      * send a not successfull stored response 
      * 
      * @return Illuminate\Http\JsonResponse
