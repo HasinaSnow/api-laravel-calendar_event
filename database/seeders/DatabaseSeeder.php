@@ -24,6 +24,8 @@ use App\Models\Type;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
+use function GuzzleHttp\Promise\each;
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -99,23 +101,34 @@ class DatabaseSeeder extends Seeder
                     'created_by' => $event->created_by
                 ])
                 ->each(function($budget) {
-                    // payment (one to many)
-                    Payment::factory(rand(0,2))->create([
-                        'budget_id' => $budget->id,
-                        'created_by' => $budget->created_by
-                    ]) 
-                    ->each(function($payment) {
-                        // deposit (one to one)
-                        Deposit::factory(rand(0, 1))->create([
-                            'payment_id' => $payment->id,
-                            'created_by' => $payment->created_by
-                        ]);
-                        // remainder (one to one)
-                        Remainder::factory(1)->create([
-                            'payment_id' => $payment->id,
-                            'created_by' => $payment->created_by
+                    // deposit (one to one)
+                    $rate_deposit = 20;
+                    Deposit::factory(rand(0, 1))->create([
+                        'rate' => $rate_deposit,
+                        'amount' => ($budget->amount * $rate_deposit )/ 100
+                    ])
+                    ->each(function($deposit){
+                        // payment (one to many)
+                        Payment::factory(1)->create([
+                            'paymentable_id' => $deposit->id,
+                            'paymentable_type' => 'App\Models\Deposit'
                         ]);
                     });
+                    
+                    // remainder (one to one)
+                    $rate_remainder = 80;
+                    Remainder::factory(1)->create([
+                        'rate' => $rate_remainder,
+                        'amount' => ($budget->amount * $rate_remainder )/ 100
+                    ])
+                    ->each(function($remainder){
+                        // payment (one to many)
+                        Payment::factory(1)->create([
+                            'paymentable_id' => $remainder->id,
+                            'paymentable_type' => 'App\Models\Remainder'
+                        ]);
+                    });
+        
                 });
                 // invoice->belongsTo (one to one )
                 Invoice::factory(1)->create([

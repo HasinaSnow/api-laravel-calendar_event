@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('deposits', function (Blueprint $table) {
             $table->id();
 
-            $table->date('expiration');
+            $table->date('expiration')->nullable()->default(null);
             $table->integer('rate')->default(20);
+            $table->integer('amount')->default(0);
             $table->text('infos');
 
-            $table->foreignId('payment_id')->constrained()->onDelete('cascade');
+            // $table->foreignId('payment_id')->constrained()->onDelete('cascade');
             
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();

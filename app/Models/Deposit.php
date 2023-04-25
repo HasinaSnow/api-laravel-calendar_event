@@ -11,17 +11,19 @@ class Deposit extends Model
 {
     use HasFactory;
 
+    protected $fillable = ['expiration', 'rate', 'amount', 'infos'];
+
     /**
      * Get the deposit's payment (one to one polymorph) 
      * 
      */
-    // public function payment() : MorphOne
-    // {
-    //     return $this->morphOne(Payment::class, 'paymentable');
-    // }
-
-    public function payment(): BelongsTo
+    public function payment() : MorphOne
     {
-        return $this->belongsTo(payment::class);
+        return $this->morphOne(Payment::class, 'paymentable');
     }
+
+    // public function payment(): BelongsTo
+    // {
+    //     return $this->belongsTo(payment::class);
+    // }
 }

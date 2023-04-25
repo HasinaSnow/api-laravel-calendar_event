@@ -11,6 +11,8 @@ class Payment extends Model
 {
     use HasFactory;
 
+    protected $fillable = ['budget_id', 'paid', 'paid_at', 'created_by', 'updated_by'];
+
     /**
      * Get the budget that owns the payment (one to many)
      * 
@@ -24,19 +26,19 @@ class Payment extends Model
      * Get the parent paymentable model (deposit or remainder)
      * 
      */
-    // public function paymentable() : MorphTo
+    public function paymentable() : MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    // public function deposit(): HasOne
     // {
-    //     return $this->morphTo();
+    //     return $this->hasOne(Deposit::class);
     // }
 
-    public function deposit(): HasOne
-    {
-        return $this->hasOne(Deposit::class);
-    }
-
-    public function remainder(): HasOne
-    {
-        return $this->hasOne(Remainder::class);
-    }
+    // public function remainder(): HasOne
+    // {
+    //     return $this->hasOne(Remainder::class);
+    // }
 
 }

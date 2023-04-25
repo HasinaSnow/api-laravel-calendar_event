@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class BudgetRequest extends FormRequest
+class InitializePaymentRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,9 +24,15 @@ class BudgetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => 'required|integer',
-            'event_id' => 'required|exists:events,id',
-            'infos' => 'nullable|string'
+            'remainder' => 'required|array',
+            'remainder.expiration' => 'required|date',
+            'remainder.infos' => 'nullable|string',
+            'deposit_initialized' => 'required|boolean',
+            'deposit' => 'required_if:deposit_initialized,true|array',
+                'deposit.expiration' => 'required|date|nullable',
+                'deposit.amount' => 'required_without_all:deposit.rate|integer',
+                'deposit.rate' => 'required_without_all:deposit.amount|integer|min:0|max:100',
+                'deposit.infos' => 'nullable|string'
         ];
     }
 

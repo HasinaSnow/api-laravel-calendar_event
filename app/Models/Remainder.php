@@ -15,17 +15,17 @@ class Remainder extends Model
      * Get the remainder's payment (one to one polymorph) 
      * 
      */
-    // public function payment() : MorphOne
-    // {
-    //     return $this->morphOne(Payment::class, 'paymentable');
-    // }
+    public function payment() : MorphOne
+    {
+        return $this->morphOne(Payment::class, 'paymentable');
+    }
 
     /**
      * 
      */
-    public function payement(): BelongsTo
-    {
-        return $this->belongto(payment::class);
-    }
+    // public function payement(): BelongsTo
+    // {
+    //     return $this->belongto(payment::class);
+    // }
 
 }

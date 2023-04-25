@@ -148,7 +148,22 @@ class ResponseService
             'data' => []
         ], 403);
     }
-
+    
+    /**
+     * send a not authorized response 
+     * @param string $data
+     * 
+     * @return Illuminate\Http\JsonResponse
+     */
+    public function notExists(string $data = 'This Data'): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => $data . ' is not exists in Database.',
+            'token' => $this->token,
+            'data' => []
+        ], 403);
+    }
     /**
      * send a not found response 
      * 

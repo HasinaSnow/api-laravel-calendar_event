@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\BudgetPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
@@ -97,6 +98,15 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
         Route::get('events/{event}/equipementList', [EventEquipementController::class, 'showEquipementListAttached']);
         Route::post('events/{event}/equipements/attachList', [EventEquipementController::class, 'attachEquipementList']);
         Route::delete('events/{event}/equipements/detachList', [EventEquipementController::class, 'detachEquipementList']);
+        Route::put('events/{event}/equipements/{equipement}/update', [EventEquipementController::class, 'updateEquipementEvent']);
+        
+        Route::apiResource('budgets', BudgetController::class);
+        Route::post('budgets/{budget}/payments/initialize', [BudgetPaymentController::class, 'initializePayment']);
+        Route::delete('budgets/{budget}/payments/remove', [BudgetPaymentController::class, 'removePayments']);
+        Route::delete('budgets/{budget}/payments/removeDeposit', [BudgetPaymentController::class, 'removePaymentDeposit']);
+        
+        Route::apiResource('payments', PaymentController::class);
+        Route::put('payments/{payment}/checkPaid', [PaymentController::class, 'checkPaidPayment']);
         
         Route::apiResource('clients', ClientController::class);
         Route::apiResource('places', PlaceController::class);
@@ -106,9 +116,7 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
 
         Route::apiResource('service_users', ServiceUserController::class);
         Route::apiResource('event_services', EventServiceController::class);
-        Route::apiResource('budgets', BudgetController::class);
         Route::apiResource('deposits', DepositController::class);
-        Route::apiResource('payments', PaymentController::class);
         Route::apiResource('tasks', TaskController::class);
         Route::apiResource('equipements', EquipementController::class);
 

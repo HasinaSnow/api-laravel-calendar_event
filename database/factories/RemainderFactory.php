@@ -19,11 +19,12 @@ class RemainderFactory extends Factory
     public function definition(): array
     {
         return [
+            'amount' => fake()->numberBetween(10000, 100000),
             'expiration' => fake()->dateTimeBetween('now', '+2 months'),
             'rate' => fake()->numberBetween(0, 100),
             'infos'=> fake()->sentence(),
 
-            'payment_id' => Payment::all()->random()->id,
+            // 'payment_id' => Payment::all()->random()->id,
 
             'created_by' =>User::all()->random()->id,
             'updated_by' =>User::all()->random()->id,

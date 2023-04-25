@@ -162,6 +162,7 @@ class EventController extends Controller
         Event $event,
     ) 
     {
+
         // recuperer les données
         $datas = [
             'event' => $event,

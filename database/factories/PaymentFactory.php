@@ -19,7 +19,6 @@ class PaymentFactory extends Factory
     public function definition(): array
     {
         return [
-            'amount' => fake()->numberBetween(10000, 100000),
             'paid' => fake()->boolean(20),
             'paid_at' => fake()->date(),
 

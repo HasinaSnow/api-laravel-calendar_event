@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\AboutUser;
 use App\Http\Requests\BudgetRequest;
+use App\Http\Requests\InitializePaymentRequest;
+use App\Http\Requests\UpdateBudgetRequest;
 use App\Models\Budget;
-use App\Services\JWT\JWTService;
-use App\Services\Permission\Voter\VoteService;
+use App\Models\Deposit;
+use App\Models\Payment;
+use App\Models\Remainder;
 use App\Services\Response\ResponseService;
-use Illuminate\Http\Request;
 
 class BudgetController extends Controller
 {
@@ -15,33 +18,21 @@ class BudgetController extends Controller
      * Display a listing of the resource.
      */
     public function index(
-        JWTService $jWTService,
         ResponseService $responseService,
-        VoteService $permission,
-        Budget $budget
+        AboutUser $aboutUser
     )
     {
-        $attribute = [];
+        // verify the permission
+        if(!$aboutUser->isAdmin())
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $budget, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
-
-        // get all clients in the database
-        $budgets = Budget::orderby('id', 'desc')->get()->toArray();
+        // get all budget in the database
+        $budgets = Budget::orderby('id', 'desc')
+            ->with(['event:id,date', 'payments'])
+            ->get()->toArray();
 
         // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'All events successfully getted',
-            $budgets
-        );
+        return $responseService->successfullGetted($budgets, 'All Budgets');
     }
 
     /**
@@ -49,40 +40,28 @@ class BudgetController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         BudgetRequest $budgetRequest,
-        Budget $budget
     )
     {
-        $attribute = ['create'];
+        // verify the permission
+        if(!$aboutUser->isAdmin())
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $budget, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        if(Budget::where('event_id', $budgetRequest->event_id)->exists())
+            return $responseService->errorServer();
 
         // store in the database
         $budget = new Budget();
         $budget->amount = $budgetRequest->amount;
         $budget->infos = $budgetRequest->infos;
-        $budget->deposit_id = $budgetRequest->deposit_id;
-        $budget->payment_id = $budgetRequest->payment_id;
-        
-        $budget->created_by = $jWTService->getIdUserToken();
+        $budget->event_id = $budgetRequest->event_id;
+        $budget->created_by = $aboutUser->id();
 
-        if ($budget->save());
+        if ($budget->save())
+            return $responseService->successfullStored('Budget');
 
-        // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Budget successfully saved',
-        );
+        return $responseService->errorServer();
     }
 
     /**
@@ -90,28 +69,22 @@ class BudgetController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Budget $budget
     )
     {
-        $attribute = ['interact'];
-        if (!$permission->resultVote($attribute, $budget, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        // verify the permission
+        if(!$aboutUser->isAdmin())
+            return $responseService->notAuthorized();
+        
+        $datas = [
+            'budget' => $budget,
+            'event' => $budget->event()->get(),
+            'payments' => $budget->payments()->get()
+        ];
 
         // send the response
-        return $responseService->generateResponseJson(
-            'success',
-            200,
-            'Budget successfully showed',
-            $budget->toArray()
-        );
+        return $responseService->successfullGetted($datas, 'Budget');
         
     }
 
@@ -120,37 +93,24 @@ class BudgetController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        BudgetRequest $budgetRequest,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
+        UpdateBudgetRequest $updateBudgetRequest,
         Budget $budget
     )
     {
-        $attribute = ['interact'];
+        // verify the permission
+        if(!$aboutUser->isAdmin())
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $budget, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        // update the data 
+        $budget->amount = $updateBudgetRequest->amount;
+        $budget->infos = $updateBudgetRequest->infos;
+        $budget->updated_by = $aboutUser->id();
 
-        // registered the data 
-        $budget->amount = $budgetRequest->amount;
-        $budget->infos = $budgetRequest->infos;
-        $budget->deposit_id = $budgetRequest->deposit_id;
-        $budget->payment_id = $budgetRequest->payment_id;
-        $budget->updated_by = $jWTService->getIdUserToken();
+        if ($budget->update());
+            return $responseService->successfullUpdated('Budget');
 
-        if ($budget->save());
-            // send the response
-            return $responseService->generateResponseJson(
-                'success',
-                200,
-                'budget successfully updated',
-            );
+        return $responseService->errorServer();
     }
 
     /**
@@ -158,27 +118,17 @@ class BudgetController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        JWTService $jWTService,
-        VoteService $permission,
+        AboutUser $aboutUser,
         Budget $budget
     )
     {
-        $attribute = ['interact'];
+        // verify the permission
+        if(!$aboutUser->isAdmin())
+            return $responseService->notAuthorized();
 
-        if (!$permission->resultVote($attribute, $budget, $jWTService)) {
-            // send the response error
-            return $responseService->generateResponseJson(
-                'error',
-                404,
-                'Not Authorized'
-            );
-        };
+        if($budget->delete())
+            return $responseService->successfullDeleted('Budget');
 
-        $budget->delete();
-        return $responseService->generateResponseJson(
-            'succes',
-            200,
-            'Budget successfully deleted'
-        );
+        return $responseService->errorServer();
     }
 }

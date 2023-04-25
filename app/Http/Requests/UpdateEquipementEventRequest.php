@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class BudgetRequest extends FormRequest
+class UpdateEquipementEventRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,13 +24,13 @@ class BudgetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => 'required|integer',
-            'event_id' => 'required|exists:events,id',
-            'infos' => 'nullable|string'
+            'relativePrice' => 'required|integer' ,
+            'quantity' => 'required_without_all:amount|integer',
+            'amount' => 'required_without_all:quantity|integer'
         ];
     }
 
-    /**
+      /**
      * Get the exception's error of validation
      *
      * @param Validator $validator

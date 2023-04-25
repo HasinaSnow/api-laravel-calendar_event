@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('remainders', function (Blueprint $table) {
             $table->id();
 
-            $table->date('expiration');
+            $table->date('expiration')->nullable()->default(null);
             $table->integer('rate')->default(80);
-            $table->text('infos');
+            $table->integer('amount')->default(0);
+            $table->text('infos')->nullable();
 
-            $table->foreignId('payment_id')->constrained()->onDelete('cascade');
+            // $table->foreignId('payment_id')->constrained()->onDelete('cascade');
 
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();

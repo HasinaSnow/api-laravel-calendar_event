@@ -14,9 +14,12 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
 
-            $table->integer('amount')->default(0);
-            $table->boolean('paid');
-            $table->date('paid_at')->nullable();
+            // $table->integer('amount')->default(0);
+            $table->boolean('paid')->default(false);
+            $table->date('paid_at')->nullable()->default(null);
+
+            $table->unsignedBigInteger('paymentable_id');
+            $table->string('paymentable_type');
             
             $table->foreignId('budget_id')->constrained()->onDelete('cascade');
 
