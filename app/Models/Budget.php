@@ -15,6 +15,7 @@ class Budget extends Model
 
     /**
      * Get all of the budget's journals.
+     * 
      */
     public function journals(): MorphToMany
     {

@@ -21,3 +21,10 @@ termes:
 - caisse (cash), banque(bank), mobileMoney
 - libellé(wording)
 - journal (journal)
+
+system :
+- enregister une ecriture (event_id, date, wording, amount, money_id, journalable_type, journalable_id)
+    -> store
+    -> update assets where event_id, money_id 
+        - si not exists alors on enregistre
+        - si debit alors on addition les montants sinon on soustrait

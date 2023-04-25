@@ -11,7 +11,9 @@ class Journal extends Model
 {
     use HasFactory;
 
-     /**
+    protected $fillable = ['wording', 'date', 'debit', 'amount', 'money_id', 'event_id', 'created_by', 'updated_by'];
+
+    /**
      * Get the event that owns the Event (one to many)
      *
      */
@@ -23,7 +25,7 @@ class Journal extends Model
     /**
      * Get the money that owns the Event (one to many)
      *
-    */
+     */
     public function money(): BelongsTo
     {
         return $this->belongsTo(Money::class);

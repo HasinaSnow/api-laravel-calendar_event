@@ -4,12 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Helpers\AboutUser;
 use App\Http\Requests\BudgetRequest;
-use App\Http\Requests\InitializePaymentRequest;
 use App\Http\Requests\UpdateBudgetRequest;
 use App\Models\Budget;
-use App\Models\Deposit;
-use App\Models\Payment;
-use App\Models\Remainder;
 use App\Services\Response\ResponseService;
 
 class BudgetController extends Controller

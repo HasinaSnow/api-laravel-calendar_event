@@ -2,15 +2,14 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\BudgetController;
-use App\Http\Controllers\BudgetPaymentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EquipementController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\EventEquipement;
 use App\Http\Controllers\EventEquipementController;
+use App\Http\Controllers\EventJournalController;
 use App\Http\Controllers\EventServiceController;
 use App\Http\Controllers\EventTaskController;
 use App\Http\Controllers\PaymentController;
@@ -100,6 +99,11 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
         Route::delete('events/{event}/equipements/detachList', [EventEquipementController::class, 'detachEquipementList']);
         Route::put('events/{event}/equipements/{equipement}/update', [EventEquipementController::class, 'updateEquipementEvent']);
         
+        Route::get('events/{event}/journals', [EventJournalController::class, 'indexJournals']);
+        Route::post('events/{event}/journals', [EventJournalController::class, 'writeJournal']);
+        Route::put('events/{event}/journals/{journal}', [EventJournalController::class, 'rectifyJournal']);
+        Route::delete('events/{event}/journals/{journal}', [EventJournalController::class, 'removeJournal']);
+
         Route::apiResource('budgets', BudgetController::class);
         // Route::post('budgets/{budget}/payments/initialize', [BudgetPaymentController::class, 'initializePayment']);
         // Route::delete('budgets/{budget}/payments/remove', [BudgetPaymentController::class, 'removePayments']);
