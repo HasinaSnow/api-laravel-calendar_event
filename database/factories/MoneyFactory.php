@@ -2,16 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\Deposit;
-use App\Models\Event;
-use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Budget>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Money>
  */
-class BudgetFactory extends Factory
+class MoneyFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -21,9 +18,8 @@ class BudgetFactory extends Factory
     public function definition(): array
     {
         return [
-            'amount' => fake()->numberBetween(1000, 20000),
-            
-            'event_id' => Event::all()->random()->id,
+            'name' => fake()->name(),
+            'infos' => fake()->paragraph(),
             
             'created_by' => User::all()->random()->id,
         ];

@@ -6,10 +6,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Equipement extends Model
 {
     use HasFactory;
+
+    /**
+     * Get all of the equipement's journals.
+     */
+    public function journals(): MorphToMany
+    {
+        return $this->morphToMany(Journal::class, 'journalable');
+    }
 
     /**
      * Get the service that owns the equipement (one to many) 

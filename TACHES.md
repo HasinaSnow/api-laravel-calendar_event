@@ -3,7 +3,7 @@
 |> upload de fichier (jpg)
 |> système e journal comptable 
 ## EN COURS :
-|> budgetController
+|> suppression de paymentController
 ## FINI :
 |> migrations et factory des tables (sauf la table invoices)
 |> seed des tables simple set pivots (sauf la table invoices)
@@ -49,4 +49,6 @@
 |> clientController et placeController
 |> refactoriser les tables en relation belongsTo avec la table event (categ, client, place, type, confirm)
 |> eventTaskController et eventEquipementcontroller
+|> budgetController
+
 

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -22,6 +23,17 @@ class Event extends Model
     // {
     //     return $this->morphToMany(Service::class, 'servable');
     // }
+
+
+    /**
+     * Get the assets that owns the Event (one to many)
+     *
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(Asset::class);
+    }
+
     /**
      * The services that belong to the Event (many to many) 
      *
@@ -33,13 +45,13 @@ class Event extends Model
     }
 
     /**
-     * get the parent eventable model category|type|place|confirmation|client (one to may polymorph)
-     * 
+     * Get the journs that owns the Event (one to many)
+     *
      */
-    // public function eventable(): MorphTo
-    // {
-    //     return $this->morphTo();
-    // }
+    public function journals(): HasMany
+    {
+        return $this->hasMany(Journal::class);
+    }
 
     /**
      * The tasks that belong to the Event (many to many) 
@@ -129,6 +141,6 @@ class Event extends Model
      */
     public function pack(): BelongsTo
     {
-         return $this->belongsTo(Pack::class);
+        return $this->belongsTo(Pack::class);
     }
 }

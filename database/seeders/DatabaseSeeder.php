@@ -12,6 +12,7 @@ use App\Models\Deposit;
 use App\Models\Equipement;
 use App\Models\Event;
 use App\Models\Invoice;
+use App\Models\Money;
 use App\Models\Offer;
 use App\Models\Pack;
 use App\Models\Payment;
@@ -35,6 +36,13 @@ class DatabaseSeeder extends Seeder
     {
 
         $users = User::factory(10)->create();
+        $moneys = Money::factory(3)
+            ->sequence(
+                ['name' => 'cash'],
+                ['name' => 'bank'],
+                ['name' => 'mobile money']
+            )->create();
+            
         $permissions = Permission::factory(6)
             ->sequence(
                 ['name' => 'role_admin'],
@@ -99,37 +107,8 @@ class DatabaseSeeder extends Seeder
                 Budget::factory(1)->create([
                     'event_id' => $event->id,
                     'created_by' => $event->created_by
-                ])
-                ->each(function($budget) {
-                    // deposit (one to one)
-                    $rate_deposit = 20;
-                    Deposit::factory(rand(0, 1))->create([
-                        'rate' => $rate_deposit,
-                        'amount' => ($budget->amount * $rate_deposit )/ 100
-                    ])
-                    ->each(function($deposit){
-                        // payment (one to many)
-                        Payment::factory(1)->create([
-                            'paymentable_id' => $deposit->id,
-                            'paymentable_type' => 'App\Models\Deposit'
-                        ]);
-                    });
-                    
-                    // remainder (one to one)
-                    $rate_remainder = 80;
-                    Remainder::factory(1)->create([
-                        'rate' => $rate_remainder,
-                        'amount' => ($budget->amount * $rate_remainder )/ 100
-                    ])
-                    ->each(function($remainder){
-                        // payment (one to many)
-                        Payment::factory(1)->create([
-                            'paymentable_id' => $remainder->id,
-                            'paymentable_type' => 'App\Models\Remainder'
-                        ]);
-                    });
-        
-                });
+                ]);
+
                 // invoice->belongsTo (one to one )
                 Invoice::factory(1)->create([
                     'event_id' => $event->id,
@@ -139,65 +118,6 @@ class DatabaseSeeder extends Seeder
 
             });
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-        // $this->call([
-        //     ClientSeeder::class
-        // ]);
-
-        
-        // $users = User::factory()
-        //     ->times(5)
-        //     ->hasAttached(
-        //         // permission_user
-        //         $permissions,
-        //         // attributs
-        //         [
-        //             'created_at' => now(),
-        //             'updated_at' => now()
-        //         ]
-        //     )
-        //     ->create();
-        
-        
-
-        // $events = Event::factory(9)->create();
-        // $services = Service::factory(4)->create();
-
-        // chaque event est attaché à chaque service
-        // $events = Event::factory(10)
-        //     ->hasAttached(
-        //         Service::factory(4)->create(),
-        //         [
-        //             'created_by' => User::all()->random()->id,
-        //             'updated_by' => User::all()->random()->id,
-        //             'created_at' => now(),
-        //             'updated_at' => now()
-        //         ],
-        //         'services'
-        //     )->create();
-    
-
-        // Budget::factory(3)->create();
-        // Deposit::factory(3)->create();
-        // Payment::factory(6)->create();
-
-        // Task::factory(3)
-        //     ->hasAttached(
-        //         Event::factory(3),
-        //         [
-        //             'check' => fake()->boolean(),
-        //             'attribute_to' => User::all()->random()->id,
-        //             'created_by' => User::all()->random()->id,
-        //             'updated_by' => User::all()->random()->id
-        //         ]
-        //     )->create();
-        // Equipement::factory(10)->create();
-        // // EquipementEvent::factory(10)->create();
-        // Invoice::factory(3)->create();
     }
 }
 

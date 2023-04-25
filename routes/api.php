@@ -101,9 +101,9 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
         Route::put('events/{event}/equipements/{equipement}/update', [EventEquipementController::class, 'updateEquipementEvent']);
         
         Route::apiResource('budgets', BudgetController::class);
-        Route::post('budgets/{budget}/payments/initialize', [BudgetPaymentController::class, 'initializePayment']);
-        Route::delete('budgets/{budget}/payments/remove', [BudgetPaymentController::class, 'removePayments']);
-        Route::delete('budgets/{budget}/payments/removeDeposit', [BudgetPaymentController::class, 'removePaymentDeposit']);
+        // Route::post('budgets/{budget}/payments/initialize', [BudgetPaymentController::class, 'initializePayment']);
+        // Route::delete('budgets/{budget}/payments/remove', [BudgetPaymentController::class, 'removePayments']);
+        // Route::delete('budgets/{budget}/payments/removeDeposit', [BudgetPaymentController::class, 'removePaymentDeposit']);
         
         Route::apiResource('payments', PaymentController::class);
         Route::put('payments/{payment}/checkPaid', [PaymentController::class, 'checkPaidPayment']);

@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('payments', function (Blueprint $table) {
+        Schema::create('assets', function (Blueprint $table) {
             $table->id();
 
-            // $table->integer('amount')->default(0);
-            $table->boolean('paid')->default(false);
-            $table->date('paid_at')->nullable()->default(null);
+            $table->integer('amount')->default(0);
 
-            $table->unsignedBigInteger('paymentable_id');
-            $table->string('paymentable_type');
-            
-            $table->foreignId('budget_id')->constrained()->onDelete('cascade');
+            $table->foreignId('event_id')->constrained();
+            $table->foreignId('money_id')->constrained();
 
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();
@@ -37,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('payments');
+        Schema::dropIfExists('assets');
     }
 };
