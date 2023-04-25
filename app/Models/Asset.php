@@ -10,6 +10,8 @@ class Asset extends Model
 {
     use HasFactory;
 
+    protected $fillable = ['amount', 'created_by', 'updated_by'];
+
     public function event(): BelongsTo
     {
         return $this->belongsTo(Event::class);

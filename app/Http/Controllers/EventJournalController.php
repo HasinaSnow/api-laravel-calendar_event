@@ -10,7 +10,6 @@ use App\Models\Equipement;
 use App\Models\Event;
 use App\Models\Journal;
 use App\Services\Response\ResponseService;
-use Illuminate\Http\Request;
 
 class EventJournalController extends Controller
 {
@@ -50,6 +49,7 @@ class EventJournalController extends Controller
             'event_id' => $event->id,
             'created_by' => $aboutUser->id()
         ]);
+
         if($registerJournalRequest->journal_type === 'budget')
         {
             $budget = Budget::find($registerJournalRequest->budget_id);
@@ -61,13 +61,19 @@ class EventJournalController extends Controller
             $equipement->journals()->save($journal);
         }
         
+        $aboutAsset->syncAmount($registerJournalRequest, $aboutUser, $event);
         return $responseService->successfullStored('New Journal');
 
     }
 
-    public function update(
+    /**
+     * update the journal
+     */
+    public function rectifyJournal(
         ResponseService $responseService,
+        RegisterJournalRequest $registerJournalRequest,
         AboutUser $aboutUser,
+        AboutAsset $aboutAsset,
         Event $event,
         Journal $journal
     )
@@ -75,8 +81,48 @@ class EventJournalController extends Controller
         // verify permission
         if(!$aboutUser->isAdmin())
             return $responseService->notAuthorized();
+            
+        $aboutAsset->recalculateAsset($event, $journal, $aboutUser);
 
-        // $event->journals()->where('')
+        $journal->update([
+            'wording' => $registerJournalRequest->wording,
+            'date' => $registerJournalRequest->date,
+            'debit' => $registerJournalRequest->debit,
+            'amount' => $registerJournalRequest->amount,
+            'money_id' => $registerJournalRequest->money_id,
+            'event_id' => $event->id,
+            'updated_by' => $aboutUser->id()
+        ]);
+
+        $aboutAsset->syncAmount($registerJournalRequest, $aboutUser, $event);
+
+        return $responseService->successfullUpdated('Journal');
+        
+    }
+
+    /**
+     * 
+     */
+    public function removeJournal(
+        ResponseService $responseService,
+        AboutUser $aboutUser,
+        AboutAsset $aboutAsset,
+        Event $event,
+        Journal $journal
+    )
+    {
+        // verify permission
+        if(!$aboutUser->isAdmin())
+            return $responseService->notAuthorized();
+        
+        // recalculate the last asset
+        $aboutAsset->recalculateAsset($event, $journal, $aboutUser);
+
+        // remove the journal
+        $journal->delete();
+
+        return $responseService->successfullDeleted('Journal');
+
     }
 
 

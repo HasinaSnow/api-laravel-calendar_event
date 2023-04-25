@@ -7,8 +7,11 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConfirmationController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EquipementController;
+use App\Http\Controllers\EventAssetController;
+use App\Http\Controllers\EventBudgetJournal;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventEquipementController;
+use App\Http\Controllers\EventEquipementJournalController;
 use App\Http\Controllers\EventJournalController;
 use App\Http\Controllers\EventServiceController;
 use App\Http\Controllers\EventTaskController;
@@ -82,8 +85,9 @@ Route::post('register', [AccountController::class, 'register']);
 Route::post('login', [AccountController::class, 'login']);
 Route::post('logout', [AccountController::class, 'logout']);
 
-Route::group(['middleware' => 'isAuthJWT'], function() {
-        
+Route::group(['middleware' => 'isAuthJWT'], function () {
+
+        // EVENTS
         Route::resource('events', EventController::class);
 
         Route::get('events/{event}/taskList', [EventTaskController::class, 'showTaskListAttached']);
@@ -93,25 +97,37 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
         Route::put('events/{event}/tasks/attributeList', [EventTaskController::class, 'attributeTaskList']);
         Route::put('events/{event}/tasks/expirationList', [EventTaskController::class, 'expirationTaskList']);
         Route::put('events/{event}/tasks/{task}/check', [EventTaskController::class, 'checkTask']);
-        
+
         Route::get('events/{event}/equipementList', [EventEquipementController::class, 'showEquipementListAttached']);
         Route::post('events/{event}/equipements/attachList', [EventEquipementController::class, 'attachEquipementList']);
         Route::delete('events/{event}/equipements/detachList', [EventEquipementController::class, 'detachEquipementList']);
         Route::put('events/{event}/equipements/{equipement}/update', [EventEquipementController::class, 'updateEquipementEvent']);
         
+        Route::get('events/{event}/equipements/{equipement}/journals', [EventEquipementJournalController::class, 'indexEquipementJournals']);
+        Route::get('events/{event}/budgets/{budget}/journals', [EventBudgetJournal::class, 'indexBudgetJournals']);
+
+        Route::get('events/{event}/assets', [EventAssetController::class, 'indexAssets']);
+        Route::get('events/{event}/assets/{asset}', [EventAssetController::class, 'showAsset']);
+
         Route::get('events/{event}/journals', [EventJournalController::class, 'indexJournals']);
         Route::post('events/{event}/journals', [EventJournalController::class, 'writeJournal']);
         Route::put('events/{event}/journals/{journal}', [EventJournalController::class, 'rectifyJournal']);
         Route::delete('events/{event}/journals/{journal}', [EventJournalController::class, 'removeJournal']);
 
+        // EQUIPEMENTS
+        Route::apiResource('equipements', EquipementController::class);
+        
+        // TASKS
+        Route::apiResource('tasks', TaskController::class);
+
         Route::apiResource('budgets', BudgetController::class);
         // Route::post('budgets/{budget}/payments/initialize', [BudgetPaymentController::class, 'initializePayment']);
         // Route::delete('budgets/{budget}/payments/remove', [BudgetPaymentController::class, 'removePayments']);
         // Route::delete('budgets/{budget}/payments/removeDeposit', [BudgetPaymentController::class, 'removePaymentDeposit']);
-        
+
         Route::apiResource('payments', PaymentController::class);
         Route::put('payments/{payment}/checkPaid', [PaymentController::class, 'checkPaidPayment']);
-        
+
         Route::apiResource('clients', ClientController::class);
         Route::apiResource('places', PlaceController::class);
         Route::apiResource('types', TypeController::class);
@@ -121,8 +137,4 @@ Route::group(['middleware' => 'isAuthJWT'], function() {
         Route::apiResource('service_users', ServiceUserController::class);
         Route::apiResource('event_services', EventServiceController::class);
         Route::apiResource('deposits', DepositController::class);
-        Route::apiResource('tasks', TaskController::class);
-        Route::apiResource('equipements', EquipementController::class);
-
 });
-

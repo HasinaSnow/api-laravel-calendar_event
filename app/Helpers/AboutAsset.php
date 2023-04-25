@@ -7,6 +7,7 @@ use App\Http\Requests\StoreAssetRequest;
 use App\Http\Requests\SyncAmountAssetRequest;
 use App\Models\Asset;
 use App\Models\Event;
+use App\Models\Journal;
 use App\Services\Response\ResponseService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Test\Constraint\ResponseFormatSame;
@@ -21,13 +22,14 @@ class AboutAsset
     public function store(
         RegisterJournalRequest $registerJournalRequest,
         AboutUser $aboutUser,
+        Event $event
     )
     {
 
         $asset = new Asset();
         $asset->amount = $registerJournalRequest->amount;
         $asset->money_id = $registerJournalRequest->money_id;
-        $asset->event_id = $registerJournalRequest->event_id;
+        $asset->event_id = $event->id;
         $asset->created_by = $aboutUser->id();
 
         if($asset->save())
@@ -41,7 +43,6 @@ class AboutAsset
      * @return true|responseService
      */
     public function syncAmount(
-        ResponseService $responseService,
         RegisterJournalRequest $registerJournalRequest,
         AboutUser $aboutUser,
         Event $event
@@ -50,24 +51,48 @@ class AboutAsset
         $assets = $event->assets()
             ->where('money_id', $registerJournalRequest->money_id);
 
-        if(!$assets->exists())
-        {
-            $asset = $this->store($registerJournalRequest, $aboutUser);
-        }
-
         if(!$registerJournalRequest->debit)
             $registerJournalRequest->amount  *= (-1);
 
-        foreach($assets->get() as $asset)
+        if(!$assets->exists())
         {
-            $asset->update([
-                'amount' => $asset->amount + $registerJournalRequest->amount,
-                'updated_by' => $aboutUser->id()
-            ]);
-        };
+            $asset = $this->store($registerJournalRequest, $aboutUser, $event);
+        } else
+        {
+            foreach($assets->get() as $asset)
+            {
+                $asset->update([
+                    'amount' => $asset->amount + $registerJournalRequest->amount,
+                    'updated_by' => $aboutUser->id()
+                ]);
+            };
+        }
 
         return true;
 
+    }
+
+    public function recalculateAsset(
+        Event $event,
+        Journal $journal,
+        AboutUser $aboutUser
+    )
+    {
+        // dd($journal->money_id);
+        $assets = $event->assets()
+            ->where('money_id', $journal->money_id);
+
+        if($journal->debit)
+            $journal->amount = $journal->amount * (-1);
+
+        foreach($assets->get() as $asset)
+            {          
+                $asset->update([
+                    'amount' => $asset->amount + $journal->amount,
+                    'updated_by' => $aboutUser->id()
+                ]);
+            };
+        
     }
 
 }

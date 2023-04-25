@@ -1,9 +1,6 @@
 ## A FAIRE :
-|> creation automatique de invoice après creation d'un event
 |> upload de fichier (jpg)
-|> système e journal comptable 
 ## EN COURS :
-|> suppression de paymentController
 ## FINI :
 |> migrations et factory des tables (sauf la table invoices)
 |> seed des tables simple set pivots (sauf la table invoices)
@@ -47,8 +44,11 @@
 |> installer et apprendre git
 |> refactoriser eventcontroller
 |> clientController et placeController
+|> creation automatique de invoice après creation d'un event
 |> refactoriser les tables en relation belongsTo avec la table event (categ, client, place, type, confirm)
 |> eventTaskController et eventEquipementcontroller
 |> budgetController
+|> systeme de journal et de assets (actif:cash,bank,mobile money)
+
 
 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Equipement extends Model
 {
@@ -15,9 +15,9 @@ class Equipement extends Model
     /**
      * Get all of the equipement's journals.
      */
-    public function journals(): MorphToMany
+    public function journals(): MorphMany
     {
-        return $this->morphToMany(Journal::class, 'journalable');
+        return $this->morphMany(Journal::class, 'journalable');
     }
 
     /**
