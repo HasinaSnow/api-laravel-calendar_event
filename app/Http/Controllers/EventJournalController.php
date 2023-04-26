@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\AboutAsset;
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\RegisterJournalRequest;
 use App\Models\Budget;
 use App\Models\Equipement;
@@ -15,12 +15,12 @@ class EventJournalController extends Controller
 {
     public function indexJournals(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
         // verify permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
         // get all the journals for specific event
         $journals = $event->journals()->get();
@@ -31,13 +31,13 @@ class EventJournalController extends Controller
     public function writeJournal(
         ResponseService $responseService,
         RegisterJournalRequest $registerJournalRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         AboutAsset $aboutAsset,
         Event $event,
     )
     {
         // verify permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         $journal = new Journal([
@@ -47,7 +47,7 @@ class EventJournalController extends Controller
             'amount' => $registerJournalRequest->amount,
             'money_id' => $registerJournalRequest->money_id,
             'event_id' => $event->id,
-            'created_by' => $aboutUser->id()
+            'created_by' => $aboutCurrentUser->id()
         ]);
 
         if($registerJournalRequest->journal_type === 'budget')
@@ -61,7 +61,7 @@ class EventJournalController extends Controller
             $equipement->journals()->save($journal);
         }
         
-        $aboutAsset->syncAmount($registerJournalRequest, $aboutUser, $event);
+        $aboutAsset->syncAmount($registerJournalRequest, $aboutCurrentUser, $event);
         return $responseService->successfullStored('New Journal');
 
     }
@@ -72,17 +72,17 @@ class EventJournalController extends Controller
     public function rectifyJournal(
         ResponseService $responseService,
         RegisterJournalRequest $registerJournalRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         AboutAsset $aboutAsset,
         Event $event,
         Journal $journal
     )
     {
         // verify permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
             
-        $aboutAsset->recalculateAsset($event, $journal, $aboutUser);
+        $aboutAsset->recalculateAsset($event, $journal, $aboutCurrentUser);
 
         $journal->update([
             'wording' => $registerJournalRequest->wording,
@@ -91,10 +91,10 @@ class EventJournalController extends Controller
             'amount' => $registerJournalRequest->amount,
             'money_id' => $registerJournalRequest->money_id,
             'event_id' => $event->id,
-            'updated_by' => $aboutUser->id()
+            'updated_by' => $aboutCurrentUser->id()
         ]);
 
-        $aboutAsset->syncAmount($registerJournalRequest, $aboutUser, $event);
+        $aboutAsset->syncAmount($registerJournalRequest, $aboutCurrentUser, $event);
 
         return $responseService->successfullUpdated('Journal');
         
@@ -105,18 +105,18 @@ class EventJournalController extends Controller
      */
     public function removeJournal(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         AboutAsset $aboutAsset,
         Event $event,
         Journal $journal
     )
     {
         // verify permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
         
         // recalculate the last asset
-        $aboutAsset->recalculateAsset($event, $journal, $aboutUser);
+        $aboutAsset->recalculateAsset($event, $journal, $aboutCurrentUser);
 
         // remove the journal
         $journal->delete();

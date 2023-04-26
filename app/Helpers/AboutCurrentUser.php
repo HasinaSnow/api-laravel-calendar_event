@@ -8,7 +8,7 @@ use App\Services\Permission\Voter\VoteService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
-class AboutUser
+class AboutCurrentUser
 {
 
     /**
@@ -16,7 +16,12 @@ class AboutUser
      */
     private $jWTService;
 
+    /**
+     * instance of voteService
+     */
     private $voteService;
+
+
 
     public function __construct(JWTService $jWTService, VoteService $voteService)
     {
@@ -113,6 +118,15 @@ class AboutUser
     public function id(): int
     {
         return $this->jWTService->getIdUserToken();
+    }
+
+    /**
+     * get the id of the current user
+     * @return string
+     */
+    public function name(): string
+    {
+        return User::find($this->jWTService->getIdUserToken())->name;
     }
 
     /**

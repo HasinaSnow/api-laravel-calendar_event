@@ -21,7 +21,7 @@ class AboutAsset
      */
     public function store(
         RegisterJournalRequest $registerJournalRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
@@ -30,7 +30,7 @@ class AboutAsset
         $asset->amount = $registerJournalRequest->amount;
         $asset->money_id = $registerJournalRequest->money_id;
         $asset->event_id = $event->id;
-        $asset->created_by = $aboutUser->id();
+        $asset->created_by = $aboutCurrentUser->id();
 
         if($asset->save())
             return true;
@@ -44,7 +44,7 @@ class AboutAsset
      */
     public function syncAmount(
         RegisterJournalRequest $registerJournalRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
@@ -56,14 +56,14 @@ class AboutAsset
 
         if(!$assets->exists())
         {
-            $asset = $this->store($registerJournalRequest, $aboutUser, $event);
+            $asset = $this->store($registerJournalRequest, $aboutCurrentUser, $event);
         } else
         {
             foreach($assets->get() as $asset)
             {
                 $asset->update([
                     'amount' => $asset->amount + $registerJournalRequest->amount,
-                    'updated_by' => $aboutUser->id()
+                    'updated_by' => $aboutCurrentUser->id()
                 ]);
             };
         }
@@ -75,7 +75,7 @@ class AboutAsset
     public function recalculateAsset(
         Event $event,
         Journal $journal,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     )
     {
         // dd($journal->money_id);
@@ -89,7 +89,7 @@ class AboutAsset
             {          
                 $asset->update([
                     'amount' => $asset->amount + $journal->amount,
-                    'updated_by' => $aboutUser->id()
+                    'updated_by' => $aboutCurrentUser->id()
                 ]);
             };
         

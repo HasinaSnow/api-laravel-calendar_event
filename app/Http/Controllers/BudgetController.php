@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\BudgetRequest;
 use App\Http\Requests\UpdateBudgetRequest;
 use App\Models\Budget;
@@ -15,11 +15,11 @@ class BudgetController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     )
     {
         // verify the permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         // get all budget in the database
@@ -36,12 +36,12 @@ class BudgetController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         BudgetRequest $budgetRequest,
     )
     {
         // verify the permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         if(Budget::where('event_id', $budgetRequest->event_id)->exists())
@@ -52,7 +52,7 @@ class BudgetController extends Controller
         $budget->amount = $budgetRequest->amount;
         $budget->infos = $budgetRequest->infos;
         $budget->event_id = $budgetRequest->event_id;
-        $budget->created_by = $aboutUser->id();
+        $budget->created_by = $aboutCurrentUser->id();
 
         if ($budget->save())
             return $responseService->successfullStored('Budget');
@@ -65,12 +65,12 @@ class BudgetController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Budget $budget
     )
     {
         // verify the permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
         
         $datas = [
@@ -89,19 +89,19 @@ class BudgetController extends Controller
      */
     public function update(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         UpdateBudgetRequest $updateBudgetRequest,
         Budget $budget
     )
     {
         // verify the permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         // update the data 
         $budget->amount = $updateBudgetRequest->amount;
         $budget->infos = $updateBudgetRequest->infos;
-        $budget->updated_by = $aboutUser->id();
+        $budget->updated_by = $aboutCurrentUser->id();
 
         if ($budget->update());
             return $responseService->successfullUpdated('Budget');
@@ -114,12 +114,12 @@ class BudgetController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Budget $budget
     )
     {
         // verify the permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         if($budget->delete())

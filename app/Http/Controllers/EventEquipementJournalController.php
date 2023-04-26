@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Models\Equipement;
 use App\Models\Event;
 use App\Services\Response\ResponseService;
@@ -11,11 +11,11 @@ class EventEquipementJournalController extends Controller
 {
     public function indexEquipementJournals(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
         Equipement $equipement
     ) {
-        if (!$aboutUser->isAdmin())
+        if (!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         $journals = $equipement->journals()

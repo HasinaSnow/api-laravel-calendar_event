@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use App\Services\JWT\JWTService;
+use App\Services\Notification\NotificationService;
 use App\Services\Response\ResponseService;
 use Closure;
 use Illuminate\Http\Request;
@@ -51,6 +53,11 @@ class AuthJWT
 
             // send a new token refreshed in response
             $this->responseService->setRefreshToken($this->jWTService->getRefreshToken());
+
+            // send a new unread notifications in response
+            $user = User::find($this->jWTService->getIdUserToken());
+            $notifications = new NotificationService();
+            $this->responseService->setNotifications($notifications->get($user));
 
             return $next($request);
 

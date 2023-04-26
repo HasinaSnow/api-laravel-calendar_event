@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\ConfirmationRequest;
 use App\Models\Confirmation;
 use App\Services\JWT\JWTService;
@@ -29,19 +29,19 @@ class ConfirmationController extends Controller
     public function store(
         ResponseService $responseService,
         ConfirmationRequest $confirmationRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Confirmation $confirmation
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToCreate($confirmation))
+        if(!$aboutCurrentUser->isPermisToCreate($confirmation))
             return $responseService->notAuthorized();
 
         // store in the database
         $confirmation = new Confirmation();
         $confirmation->name = $confirmationRequest->name;
         $confirmation->infos = $confirmationRequest->infos;
-        $confirmation->created_by = $aboutUser->id();
+        $confirmation->created_by = $aboutCurrentUser->id();
 
         if (
             Confirmation::where('date', $confirmationRequest->date)
@@ -60,13 +60,13 @@ class ConfirmationController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser, 
+        AboutCurrentUser $aboutCurrentUser, 
         Confirmation $confirmation
     )
     {
         $data = ['confirmation' => $confirmation->toArray()];
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
         {
             $data['events'] = $confirmation->events()->with(
                 [
@@ -77,7 +77,7 @@ class ConfirmationController extends Controller
                     'confirmation:id,name'
                 ]
             );
-        }else if($aboutUser->isEventManager())
+        }else if($aboutCurrentUser->isEventManager())
         {
             $data['events'] = $confirmation->events()
                 ->with(
@@ -90,7 +90,7 @@ class ConfirmationController extends Controller
                     ]
                 )
             ->get()
-            ->where('created_by', $aboutUser->id());
+            ->where('created_by', $aboutCurrentUser->id());
         }
 
         return $responseService->successfullGetted($data, 'Confirmation');
@@ -103,18 +103,18 @@ class ConfirmationController extends Controller
     public function update(
         ResponseService $responseService,
         ConfirmationRequest $confirmationRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Confirmation $confirmation
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($confirmation))
+        if(!$aboutCurrentUser->isPermisToInteract($confirmation))
             return $responseService->notAuthorized();
 
         // store in the database
         $confirmation->name = $confirmationRequest->name;
         $confirmation->infos = $confirmationRequest->infos;
-        $confirmation->updated_by = $aboutUser->id();
+        $confirmation->updated_by = $aboutCurrentUser->id();
 
         if (
             Confirmation::where('date', $confirmationRequest->date)
@@ -133,12 +133,12 @@ class ConfirmationController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Confirmation $confirmation
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($confirmation))
+        if(!$aboutCurrentUser->isPermisToInteract($confirmation))
             return $responseService->notAuthorized();
 
         if($confirmation->delete())

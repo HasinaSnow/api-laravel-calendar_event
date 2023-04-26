@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\EquipementRequest;
 use App\Models\Equipement;
 use App\Services\Response\ResponseService;
@@ -15,15 +15,15 @@ class EquipementController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     )
     {
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
             $equipements = Equipement::orderby('id', 'desc')->get()->toArray();
-        else if($aboutUser->isEquipementManager())
+        else if($aboutCurrentUser->isEquipementManager())
             $equipements = Equipement::orderby('id', 'desc')
-                ->whereIn('service_id', $aboutUser->idServices())
+                ->whereIn('service_id', $aboutCurrentUser->idServices())
                 ->with('service:id,name')
                 ->get()->toArray();
         else
@@ -38,12 +38,12 @@ class EquipementController extends Controller
     public function store(
         ResponseService $responseService,
         EquipementRequest $equipementRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Equipement $equipement
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToCreate($equipement))
+        if(!$aboutCurrentUser->isPermisToCreate($equipement))
             return $responseService->notAuthorized();
 
         // store in the database
@@ -52,12 +52,12 @@ class EquipementController extends Controller
         $equipement->price = $equipementRequest->price;
         $equipement->infos = $equipementRequest->infos;
         $equipement->service_id = $equipementRequest->service_id;
-        $equipement->created_by = $aboutUser->id();
+        $equipement->created_by = $aboutCurrentUser->id();
 
         // verify if the service_id
         if(
-            !$aboutUser->isAdmin() &&
-            !in_array($equipementRequest->service_id, $aboutUser->idServices())
+            !$aboutCurrentUser->isAdmin() &&
+            !in_array($equipementRequest->service_id, $aboutCurrentUser->idServices())
         )
             return $responseService->errorServer();
         
@@ -79,7 +79,7 @@ class EquipementController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Equipement $equipement
     )
     {
@@ -89,10 +89,10 @@ class EquipementController extends Controller
         ];
 
         // verify the permission
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
             return $responseService->successfullGetted($datas, 'Equipement');
-        else if($aboutUser->isEquipementManager())
-            if(in_array($equipement->service_id, $aboutUser->idServices()))
+        else if($aboutCurrentUser->isEquipementManager())
+            if(in_array($equipement->service_id, $aboutCurrentUser->idServices()))
                 return $responseService->successfullGetted($datas, 'Equipement');
 
         return $responseService->notFound();
@@ -105,23 +105,23 @@ class EquipementController extends Controller
     public function update(
         ResponseService $responseService,
         EquipementRequest $equipementRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Equipement $equipement
     )
     {
-        if(!$aboutUser->isPermisToInteract($equipement))
+        if(!$aboutCurrentUser->isPermisToInteract($equipement))
             return $responseService->notAuthorized();
 
         // updated in the database
         $equipement->name = $equipementRequest->name;
         $equipement->infos = $equipementRequest->infos;
         $equipement->service_id = $equipementRequest->service_id;
-        $equipement->updated_by = $aboutUser->id();
+        $equipement->updated_by = $aboutCurrentUser->id();
 
         // verify service
         if(
-            !$aboutUser->isAdmin() &&
-            !in_array($equipementRequest->service_id, $aboutUser->idServices())
+            !$aboutCurrentUser->isAdmin() &&
+            !in_array($equipementRequest->service_id, $aboutCurrentUser->idServices())
         )
             return $responseService->errorServer();
 
@@ -141,11 +141,11 @@ class EquipementController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Equipement $equipement
     )
     {
-        if(!$aboutUser->isPermisToInteract($equipement))
+        if(!$aboutCurrentUser->isPermisToInteract($equipement))
             return $responseService->notAuthorized();
 
         if($equipement->delete())

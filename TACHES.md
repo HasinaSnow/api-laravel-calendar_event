@@ -1,6 +1,9 @@
 ## A FAIRE :
 |> upload de fichier (jpg)
 ## EN COURS :
+- sytème de notifications statiques
+    - TaskchekedNotification
+
 ## FINI :
 |> migrations et factory des tables (sauf la table invoices)
 |> seed des tables simple set pivots (sauf la table invoices)

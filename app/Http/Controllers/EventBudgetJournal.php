@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Models\Budget;
 use App\Models\Event;
 use App\Services\Response\ResponseService;
@@ -13,12 +13,12 @@ class EventBudgetJournal extends Controller
 {
     public function indexBudgetJournals(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
         Budget $budget
     )
     {
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         $journals = $budget->journals()

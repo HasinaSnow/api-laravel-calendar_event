@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Models\Asset;
 use App\Models\Event;
 use App\Services\Response\ResponseService;
@@ -11,11 +11,11 @@ class EventAssetController extends Controller
 {
     public function indexAssets(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         $assets = Asset::where('event_id', $event->id)
@@ -27,12 +27,12 @@ class EventAssetController extends Controller
 
     public function showAsset(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
         Asset $asset
     )
     {
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         return $responseService->successfullGetted($asset->toArray(), 'Asset');

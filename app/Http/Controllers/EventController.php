@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\EventRequest;
 use App\Models\Budget;
 use App\Models\Category;
@@ -23,7 +23,7 @@ class EventController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
     ) 
     {
 
@@ -39,18 +39,18 @@ class EventController extends Controller
             ]
         );
         // trier les données en fonction du profile de l'user
-        if ($aboutUser->isAdmin()) {
+        if ($aboutCurrentUser->isAdmin()) {
             $events = $events->with('budget:event_id,amount', 'pack:id,name');
         } else {
-            if ($aboutUser->isEventManager()) {
+            if ($aboutCurrentUser->isEventManager()) {
                 $events = $events
                     ->with('pack:id,name')
                     ->where('audience', true) 
-                    ->orWhere('created_by', $aboutUser->id());
+                    ->orWhere('created_by', $aboutCurrentUser->id());
             } else {
                 $events = $events
                     ->where('audience', true)
-                    ->whereRelation('services', 'service_id', '=', implode('||', $aboutUser->idServices()));
+                    ->whereRelation('services', 'service_id', '=', implode('||', $aboutCurrentUser->idServices()));
             }
         }
         // send the success response
@@ -62,12 +62,12 @@ class EventController extends Controller
      */
     public function create(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
         // verify the user permission 
-        if (!$aboutUser->isPermisToCreate($event))
+        if (!$aboutCurrentUser->isPermisToCreate($event))
             return $responseService->notAuthorized();
         // get the data in db
         $datas = [
@@ -89,12 +89,12 @@ class EventController extends Controller
     public function store(
         ResponseService $responseService,
         EventRequest $eventRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     ) 
     {
         // verify the user permission
-        if(!$aboutUser->isPermisToCreate($event))
+        if(!$aboutCurrentUser->isPermisToCreate($event))
             return $responseService->notAuthorized();
 
         // record the datas
@@ -107,7 +107,7 @@ class EventController extends Controller
         $event->type_id = $eventRequest->type_id;
         $event->confirmation_id = $eventRequest->confirmation_id;
         $event->pack_id = $eventRequest->pack_id;
-        $event->created_by = $aboutUser->id();
+        $event->created_by = $aboutCurrentUser->id();
 
         // verifie the unique record in database
         if (
@@ -127,7 +127,7 @@ class EventController extends Controller
 
         // attachement avec les tables pivot (many to many)
         foreach($eventRequest->service_id as $serviceId)
-            $serviceToAttach[$serviceId] = ['created_by' => $aboutUser->id()];
+            $serviceToAttach[$serviceId] = ['created_by' => $aboutCurrentUser->id()];
         $event->services()->attach($serviceToAttach);
 
         // creation au niveau de table en relation hasOne (one to one)
@@ -137,7 +137,7 @@ class EventController extends Controller
                 'event_id' => $event->id,
                 'amount' => $eventRequest->budget_amount,
                 'infos' => $eventRequest->budget_infos,
-                'created_by' => $aboutUser->id()
+                'created_by' => $aboutCurrentUser->id()
             ]);
         }
 
@@ -145,7 +145,7 @@ class EventController extends Controller
         Invoice::create([
             'event_id' => $event->id,
             'reference' => "invoice_" . $event->id,
-            'created_by' => $aboutUser->id()
+            'created_by' => $aboutCurrentUser->id()
         ]);
 
         // send the successfull response
@@ -158,7 +158,7 @@ class EventController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
     ) 
     {
@@ -175,15 +175,15 @@ class EventController extends Controller
         ]; 
 
         // 
-        if ($aboutUser->isAdmin()) {
+        if ($aboutCurrentUser->isAdmin()) {
             $datas['pack'] = $event->pack()->get()->toArray();
             $datas['budget'] = $event->budget()->get()->toArray();
             $datas['equipements'] =$event->equipements()->get()->toArray();
             $datas['tasks'] = $event->tasks()->get()->toArray();
         } else {
-            if ($aboutUser->isEventManager()) {
+            if ($aboutCurrentUser->isEventManager()) {
                 // if (audience = true OR created_by = id_user)
-                if(!($aboutUser->isCreator($event) || $event->audience))
+                if(!($aboutCurrentUser->isCreator($event) || $event->audience))
                     $datas = [];
                 else 
                     $datas['pack'] = $event->pack()->get()->toArray();
@@ -195,7 +195,7 @@ class EventController extends Controller
         
                 $access = false;
                 foreach($services as $service){
-                    if(in_array($service, $aboutUser->idServices()))
+                    if(in_array($service, $aboutCurrentUser->idServices()))
                     {
                         $access = true; 
                         break;
@@ -222,11 +222,11 @@ class EventController extends Controller
     public function update(
         ResponseService $responseService,
         EventRequest $eventRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     ) 
     {
-        if (!$aboutUser->isPermisToInteract($event))
+        if (!$aboutCurrentUser->isPermisToInteract($event))
             return $responseService->notAuthorized();
 
         // update the datas
@@ -240,7 +240,7 @@ class EventController extends Controller
         $event->confirmation_id = $eventRequest->confirmation_id;
         $event->pack_id = $eventRequest->pack_id;
 
-        $event->updated_by = $aboutUser->id();
+        $event->updated_by = $aboutCurrentUser->id();
 
         // verifie the unique record in database
         if (
@@ -260,7 +260,7 @@ class EventController extends Controller
         $event->update();
 
         // attachement/synchronisation des tables pivot (many to many)
-        $event->services()->syncWithPivotValues($eventRequest->service_id, ['updated_by' => $aboutUser->id()]);
+        $event->services()->syncWithPivotValues($eventRequest->service_id, ['updated_by' => $aboutCurrentUser->id()]);
 
         // creation/modification des tables relation hasOne (one to one)
         if($eventRequest->budget_creation)
@@ -270,14 +270,14 @@ class EventController extends Controller
                     'event_id' => $event->id,
                     'amount' => $eventRequest->budget_amount,
                     'infos' => $eventRequest->budget_infos,
-                    'updated_by' => $aboutUser->id()
+                    'updated_by' => $aboutCurrentUser->id()
                 ]);
             else
                 Budget::create([
                     'event_id' => $event->id,
                     'amount' => $eventRequest->budget_amount,
                     'infos' => $eventRequest->budget_infos,
-                    'created_by' => $aboutUser->id()
+                    'created_by' => $aboutCurrentUser->id()
                 ]);
         } else{
             if($event->budget()->exists())
@@ -294,12 +294,12 @@ class EventController extends Controller
      */
     public function edit(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
         // verify the permission
-        if (!$aboutUser->isPermisToCreate($event)) 
+        if (!$aboutCurrentUser->isPermisToCreate($event)) 
             return $responseService->notAuthorized();
 
         // get the datas
@@ -322,11 +322,11 @@ class EventController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     ) {
         // verify the permission
-        if (!$aboutUser->isPermisToInteract($event))
+        if (!$aboutCurrentUser->isPermisToInteract($event))
             return $responseService->notAuthorized();
 
         $event->delete();

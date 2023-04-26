@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\ClientRequest;
 use App\Models\Client;
 use App\Services\Response\ResponseService;
@@ -14,17 +14,17 @@ class ClientController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     ) 
     {
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
             $clients = Client::orderby('id', 'desc')
                 ->get(['id', 'name', 'created_by', 'updated_by', 'created_at', 'updated_at'])
                 ->toArray();
-        else if($aboutUser->isEventManager())
+        else if($aboutCurrentUser->isEventManager())
             $clients = Client::orderby('id', 'desc')
-                ->where('created_by', $aboutUser->id())
+                ->where('created_by', $aboutCurrentUser->id())
                 ->get(['id', 'name', 'created_by', 'updated_by', 'created_at', 'updated_at'])
                 ->toArray();
         else
@@ -40,20 +40,20 @@ class ClientController extends Controller
     public function store(
         ResponseService $responseService,
         ClientRequest $clientRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Client $client
     )
     {
 
         // verify the permission
-        if(!$aboutUser->isPermisToCreate($client))
+        if(!$aboutCurrentUser->isPermisToCreate($client))
             return $responseService->notAuthorized();
 
         // store in the database
         $client = new Client;
         $client->name = $clientRequest->name;
         $client->infos = $clientRequest->infos;
-        $client->created_by = $aboutUser->id();
+        $client->created_by = $aboutCurrentUser->id();
 
         if (
             Client::where('name', $clientRequest->name)
@@ -71,14 +71,14 @@ class ClientController extends Controller
      */
     public function show(
         ResponseService $responseService, 
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Client $client
     )
     {
         // get data in db
         $data = ['client' => $client->toArray()];
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
         {
             $data['events'] = $client->events()->with(
                 [
@@ -91,9 +91,9 @@ class ClientController extends Controller
             );
             
            
-        } else if($aboutUser->isEventManager())
+        } else if($aboutCurrentUser->isEventManager())
         {
-            if($client->created_by === $aboutUser->id())
+            if($client->created_by === $aboutCurrentUser->id())
                 $data['events'] = $client->events()
                 ->with(
                     [
@@ -105,7 +105,7 @@ class ClientController extends Controller
                     ]
                 )
                 ->get()
-                ->where('created_by', $aboutUser->id());
+                ->where('created_by', $aboutCurrentUser->id());
             else
                 $data = [];
         } else
@@ -121,17 +121,17 @@ class ClientController extends Controller
     public function update(
         ResponseService $responseService,
         ClientRequest $clientRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Client $client
     ) {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($client))
+        if(!$aboutCurrentUser->isPermisToInteract($client))
             return $responseService->notAuthorized();
 
         // update in the database
         $client->name = $clientRequest->name;
         $client->infos = $clientRequest->infos;
-        $client->updated_by = $aboutUser->id();
+        $client->updated_by = $aboutCurrentUser->id();
 
         if (
             Client::where('name', $clientRequest->name)
@@ -149,12 +149,12 @@ class ClientController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Client $client
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($client))
+        if(!$aboutCurrentUser->isPermisToInteract($client))
             return $responseService->notAuthorized();
 
             // try to delete the client

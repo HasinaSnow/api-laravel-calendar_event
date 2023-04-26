@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\AttachEquipementListRequest;
 use App\Http\Requests\DetachEquipementListRequest;
 use App\Http\Requests\UpdateEquipementEventRequest;
@@ -17,12 +17,12 @@ class EventEquipementController extends Controller
      */
     public function showEquipementListAttached(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
         // verify the permission
-        if(!($aboutUser->isAdmin() || $aboutUser->isEquipementManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isEquipementManager()))
             return $responseService->notAuthorized();
 
         $datas = $event->equipements()->get()->toArray();
@@ -37,19 +37,19 @@ class EventEquipementController extends Controller
     public function attachEquipementList(
         ResponseService $responseService,
         AttachEquipementListRequest $attachEquipementListRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
     )
     {
         // verifie the permission
-        if(!($aboutUser->isAdmin() || $aboutUser->isEquipementManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isEquipementManager()))
             return $responseService->notAuthorized();
 
         // list of equipements 
         foreach($attachEquipementListRequest->equipements as $equipement)
         {
             $serviceToAttach[$equipement['id']] = [
-                'created_by' => $aboutUser->id(),
+                'created_by' => $aboutCurrentUser->id(),
             ];
 
             if(isset($equipement['quantity']))
@@ -72,13 +72,13 @@ class EventEquipementController extends Controller
 
     public function updateEquipementEvent(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         UpdateEquipementEventRequest $updateEquipementEventRequest,
         Event $event,
         Equipement $equipement
     )
     {
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return  $responseService->notAuthorized();
 
         $eventEquipement = $event->equipements()->updateExistingPivot( $equipement->id, [
@@ -98,11 +98,11 @@ class EventEquipementController extends Controller
     public function detachEquipementList(
         ResponseService $responseService,
         DetachEquipementListRequest $detachEquipementListRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
     )
     {
-        if(!($aboutUser->isAdmin() || $aboutUser->isEquipementManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isEquipementManager()))
             return $responseService->notAuthorized();
 
         if($event->equipements()->detach($detachEquipementListRequest->equipements))

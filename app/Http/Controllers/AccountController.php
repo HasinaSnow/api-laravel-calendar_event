@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\JWT\JWTService;
+use App\Services\Notification\NotificationService;
 use App\Services\Response\ResponseService;
 use Exception;
 use Illuminate\Http\Request;
@@ -70,7 +71,11 @@ class AccountController extends Controller
      *
      * @return Illuminate\Http\JsonResponse
      */
-    public function login(JWTService $jWTService, ResponseService $responseService)
+    public function login(
+        JWTService $jWTService, 
+        ResponseService $responseService,
+        NotificationService $notificationService
+    )
     {
 
         /**
@@ -102,16 +107,13 @@ class AccountController extends Controller
         if($user->getAttribute('password') !== sha1(request('password')))
             return $this->responseJson('error', 422, 'Password incorrect');
 
-    
-        /**
-         * service generation token
-         * 
-         */
-        $token = $jWTService->generateToken($user);
         // send a new token refreshed in response
+        $token = $jWTService->generateToken($user);
         $responseService->setRefreshToken($token);
 
-
+        // send a new unread notifications in response for this user
+        $responseService->setNotifications($notificationService->get($user));
+        
         /**
          * response http
          * 

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\checkPaidRequest;
 use App\Http\Requests\InitializePaymentRequest;
 use App\Http\Requests\PaymentRequest;
@@ -22,11 +22,11 @@ class PaymentController extends Controller
      */
     public function index( 
         ResponseService $responseService,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     )
     {
         // verify the permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         // recuperer les payements créer par l'user
@@ -48,13 +48,13 @@ class PaymentController extends Controller
     public function checkPaidPayment(
         ResponseService $responseService,
         checkPaidRequest $checkPaidRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Budget $budget,
         Payment $payment
     )
     {
         // verify permission
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         $payment->paid = true;
@@ -70,11 +70,11 @@ class PaymentController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Payment $payment
     )
     {
-        if(!$aboutUser->isAdmin())
+        if(!$aboutCurrentUser->isAdmin())
             return $responseService->notAuthorized();
 
         $datas = [

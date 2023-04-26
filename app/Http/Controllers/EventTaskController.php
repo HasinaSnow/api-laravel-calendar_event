@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutAllUsers;
+use App\Helpers\AboutCurrentUser;
+use App\Helpers\AboutPermission;
 use App\Http\Requests\AttachTaskListRequest;
 use App\Http\Requests\AttributeTasklistRequest;
 use App\Http\Requests\DetachTaskListRequest;
 use App\Http\Requests\ExpirationTaskListRequest;
 use App\Http\Requests\TaskAttributeRequest;
 use App\Models\Event;
+use App\Models\Permission;
 use App\Models\Task;
 use App\Models\User;
+use App\Notifications\TaskCheckedNotification;
+use App\Services\Notification\NotificationService;
 use App\Services\Response\ResponseService;
 
 class EventTaskController extends Controller
@@ -21,16 +26,16 @@ class EventTaskController extends Controller
      */
     public function showTaskListAttached(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
         // verify the permission
-        if($aboutUser->isAdmin() || $aboutUser->isTaskManager())
+        if($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager())
             $datas = $event->tasks()->get()->toArray();
         else {
             $datas = $event->tasks()
-                ->wherePivot('attribute_to', '=', $aboutUser->id())
+                ->wherePivot('attribute_to', '=', $aboutCurrentUser->id())
                 ->withPivot('expiration', 'check', 'attribute_to')
                 ->get()->toArray();
         }
@@ -45,12 +50,12 @@ class EventTaskController extends Controller
     public function attachTaskList(
         ResponseService $responseService,
         AttachTaskListRequest $attachTaskListRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
     )
     {
         // verifie the permission
-        if(!($aboutUser->isAdmin() || $aboutUser->isTaskManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         // dd(count($attachTaskListRequest->tasks));
@@ -59,7 +64,7 @@ class EventTaskController extends Controller
         foreach($attachTaskListRequest->tasks as $task)
         {
             $serviceToAttach[$task['id']] = [
-                'created_by' => $aboutUser->id(),
+                'created_by' => $aboutCurrentUser->id(),
                 'expiration' => $task['expiration'],
             ];
             if(isset($task['attribute_to']))
@@ -93,11 +98,11 @@ class EventTaskController extends Controller
     public function detachTaskList(
         ResponseService $responseService,
         DetachTaskListRequest $detachTaskListRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
     )
     {
-        if(!($aboutUser->isAdmin() || $aboutUser->isTaskManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         if($event->tasks()->detach($detachTaskListRequest->tasks))
@@ -114,7 +119,7 @@ class EventTaskController extends Controller
      */
     public function attributeTask(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         TaskAttributeRequest $taskAttributeRequest,
         Event $event,
         Task $task
@@ -122,17 +127,17 @@ class EventTaskController extends Controller
     {
 
         // verify the permission who attribute the task (admin, taskManager)
-        if(!$aboutUser->isPermisToInteract($task))
+        if(!$aboutCurrentUser->isPermisToInteract($task))
             return $responseService->notAuthorized();
 
         // verify the id user who we attribute the task is in service of the task
-        if(!in_array($task->service_id, $aboutUser->idServicesOfUserSpecified($taskAttributeRequest->attribute_to)))
+        if(!in_array($task->service_id, $aboutCurrentUser->idServicesOfUserSpecified($taskAttributeRequest->attribute_to)))
             return $responseService->generateResponseJson('error', 500, 'Not authorized to attribute this task for this user');
             
         $event->tasks()->updateExistingPivot($task->id, [
             'attribute_to' => $taskAttributeRequest->attribute_to,
             'attribute_at' => now(),
-            'updated_by' => $aboutUser->id(),
+            'updated_by' => $aboutCurrentUser->id(),
             'updated_at' => now()
         ]);
         return $responseService->generateResponseJson(
@@ -149,11 +154,11 @@ class EventTaskController extends Controller
     public function attributeTaskList(
         ResponseService $responseService,
         AttributeTasklistRequest $attributeTasklistRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
     )
     {
-        if(!($aboutUser->isAdmin() || $aboutUser->isTaskManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         // les tasks doivent être de même services
@@ -162,7 +167,7 @@ class EventTaskController extends Controller
         $data = [
             'attribute_to' => $attributeTasklistRequest->attribute_to,
             'attribute_at' => now(),
-            'updated_by' => $aboutUser->id(),
+            'updated_by' => $aboutCurrentUser->id(),
             'updated_at' => now()
         ];
 
@@ -184,16 +189,16 @@ class EventTaskController extends Controller
     public function expirationTaskList(
         ResponseService $responseService,
         ExpirationTaskListRequest $expirationTaskListRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event
     )
     {
-        if(!($aboutUser->isAdmin() || $aboutUser->isTaskManager()))
+        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         $data = [
             'expiration' => $expirationTaskListRequest->expiration,
-            'updated_by' => $aboutUser->id(),
+            'updated_by' => $aboutCurrentUser->id(),
             'updated_at' => now()
         ];
 
@@ -211,13 +216,15 @@ class EventTaskController extends Controller
      */
     public function checkTask(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        NotificationService $notificationService,
+        AboutPermission $aboutPermission,
+        AboutCurrentUser $aboutCurrentUser,
         Event $event,
         Task $task
     )
     {
         // verify the user who checked the task
-        if($aboutUser->isAdmin() || $event->tasks()->findOrFail($task->id)->toArray()['pivot']['attribute_to'] === $aboutUser->id())
+        if($aboutCurrentUser->isAdmin() || $event->tasks()->findOrFail($task->id)->toArray()['pivot']['attribute_to'] === $aboutCurrentUser->id())
         {
             if($event->tasks()->findOrFail($task->id)->toArray()['pivot']['check'])
                 return $responseService->generateResponseJson(
@@ -225,13 +232,18 @@ class EventTaskController extends Controller
                     200,
                     'The task is already checked'
                 );
+            
+            // record the notifs in db
+            $notifiers = $aboutPermission->getArrayUserCollections(['role_admin', 'role_task_manager']);
+            $notificationService->store(new TaskCheckedNotification($task, $event, $aboutCurrentUser), $notifiers);
 
             $event->tasks()->updateExistingPivot($task->id, [
                 'check' => true,
                 'check_at' => now(),
-                'updated_by' => $aboutUser->id(),
+                'updated_by' => $aboutCurrentUser->id(),
                 'updated_at' => now()
             ]);
+            
             return $responseService->generateResponseJson(
                 'success',
                 200,

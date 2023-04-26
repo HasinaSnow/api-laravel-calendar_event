@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\PlaceRequest;
 use App\Models\Place;
 use App\Services\Response\ResponseService;
@@ -14,7 +14,7 @@ class PlaceController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     ) 
     {
 
@@ -32,19 +32,19 @@ class PlaceController extends Controller
     public function store(
         ResponseService $responseService,
         PlaceRequest $placeRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Place $place
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToCreate($place))
+        if(!$aboutCurrentUser->isPermisToCreate($place))
             return $responseService->notAuthorized();
 
         // store in the database
         $place = new Place;
         $place->name = $placeRequest->name;
         $place->infos = $placeRequest->infos;
-        $place->created_by = $aboutUser->id();
+        $place->created_by = $aboutCurrentUser->id();
 
         if (
             Place::where('name', $placeRequest->name)
@@ -62,14 +62,14 @@ class PlaceController extends Controller
      */
     public function show(
         ResponseService $responseService, 
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Place $place
     )
     {
         // get data in db
         $data = ['place' => $place->toArray()];
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
         {
             $data['events'] = $place->events()->with(
                 [
@@ -81,9 +81,9 @@ class PlaceController extends Controller
                 ]
             );
             
-        } else if($aboutUser->isEventManager())
+        } else if($aboutCurrentUser->isEventManager())
         {
-            if($place->created_by === $aboutUser->id())
+            if($place->created_by === $aboutCurrentUser->id())
                 $data['events'] = $place->events()
                 ->with(
                     [
@@ -95,7 +95,7 @@ class PlaceController extends Controller
                     ]
                 )
                 ->get()
-                ->where('created_by', $aboutUser->id());
+                ->where('created_by', $aboutCurrentUser->id());
         }
 
         return $responseService->successfullGetted($data, 'Place');
@@ -108,17 +108,17 @@ class PlaceController extends Controller
     public function update(
         ResponseService $responseService,
         PlaceRequest $placeRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Place $place
     ) {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($place))
+        if(!$aboutCurrentUser->isPermisToInteract($place))
             return $responseService->notAuthorized();
 
         // update in the database
         $place->name = $placeRequest->name;
         $place->infos = $placeRequest->infos;
-        $place->updated_by = $aboutUser->id();
+        $place->updated_by = $aboutCurrentUser->id();
 
         if (
             Place::where('name', $placeRequest->name)
@@ -136,12 +136,12 @@ class PlaceController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Place $place
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($place))
+        if(!$aboutCurrentUser->isPermisToInteract($place))
             return $responseService->notAuthorized();
 
             // try to delete the place

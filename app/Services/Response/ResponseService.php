@@ -14,6 +14,11 @@ class ResponseService
     private $token = null;
 
     /**
+     * all the notifications to sending in response
+     */
+    private $notifications = [];
+
+    /**
      * generate a json response http with token jwt
      *
      * @param string $status
@@ -22,13 +27,14 @@ class ResponseService
      * @param string $data
      * @return void
      */
-    public function generateResponseJson(string $status, int $status_code, string $message, array $data = [])
+    public function generateResponseJson(string $status, int $status_code, string $message, array $data = []): JsonResponse
     {
         return response()->json([
             'status' => $status,
             'message' => $message,
             'token' => $this->token,
-            'data' => $data
+            'data' => $data,
+            'notifications' => $this->notifications
         ], $status_code);
 
     }
@@ -40,12 +46,12 @@ class ResponseService
      */
     public function successfullGetted(array $data, $subject = 'Data'): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => $subject . ' successffully getted',
-            'token' => $this->token,
-            'data' => $data
-        ], 200);
+        return $this->generateResponseJson(
+            'success',
+            200,
+            $subject . ' successffully getted',
+            $data
+        );
     }
 
     /**
@@ -55,12 +61,12 @@ class ResponseService
      */
     public function successfullDeleted($subject = 'Data'): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => $subject . ' successfully deleted',
-            'token' => $this->token,
-            'data' => []
-        ], 200);
+        return $this->generateResponseJson(
+            'success',
+            200,
+            $subject . ' successfully deleted',
+            []
+        );
     }
 
     /**
@@ -70,12 +76,12 @@ class ResponseService
      */
     public function successfullStored($subject = 'Data'): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => $subject . ' successfully stored',
-            'token' => $this->token,
-            'data' => []
-        ], 200);
+        return $this->generateResponseJson(
+            'success',
+            200,
+            $subject . ' successfully stored',
+            []
+        );
     }
 
     /**
@@ -83,12 +89,12 @@ class ResponseService
      */
     public function successfullAttached(string $subject = 'Data', string $with = 'current post'): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => $subject . ' successfully attached with ' . $with,
-            'token' => $this->token,
-            'data' => []
-        ],200);
+        return $this->generateResponseJson(
+            'success',
+            200,
+            $subject . ' successfully attached with ' . $with,
+            []
+        );
     }
 
     /**
@@ -96,12 +102,12 @@ class ResponseService
      */
     public function successfullDetached(string $subject = 'Data', string $with = 'current post'): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => $subject . ' successfully detached with ' . $with,
-            'token' => $this->token,
-            'data' => []
-        ],200);
+        return $this->generateResponseJson(
+            'success',
+            200,
+            $subject . ' successfully detached with ' . $with,
+            []
+        );
     }
 
     /**
@@ -111,12 +117,12 @@ class ResponseService
      */
     public function successfullUpdated($subject = 'Data'): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => $subject . ' successffully updated',
-            'token' => $this->token,
-            'data' => []
-        ], 200);
+        return $this->generateResponseJson(
+            'success',
+            200,
+            $subject . ' successffully updated',
+            []
+        );
     }
 
     /**
@@ -126,12 +132,12 @@ class ResponseService
      */
     public function alreadyExist($subject = 'Data'): JsonResponse
     {
-        return response()->json([
-            'status' => 'error',
-            'message' => $subject . ' already exists in database',
-            'token' => $this->token,
-            'data' => []
-        ], 500);
+        return $this->generateResponseJson(
+            'error',
+            500,
+            $subject . ' already exists in database',
+            []
+        );
     }
 
     /**
@@ -203,5 +209,16 @@ class ResponseService
     public function setRefreshToken(string $token)
     {
         $this->token = $token;
+    }
+
+    /**
+     * set the new notifications refreshed
+     *
+     * @param array|null $notifications
+     * @return void
+     */
+    public function setNotifications(array|null $notifications)
+    {
+        $this->notifications = $notifications;
     }
 }

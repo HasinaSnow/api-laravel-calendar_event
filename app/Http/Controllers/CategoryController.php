@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
 use App\Services\Response\ResponseService;
@@ -26,20 +26,20 @@ class CategoryController extends Controller
      */
     public function store(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         CategoryRequest $categoryRequest,
         Category $category,
     )
     {
         // verify the user permission
-        if(!$aboutUser->isPermisToCreate($category))
+        if(!$aboutCurrentUser->isPermisToCreate($category))
             return $responseService->notAuthorized();
 
         // record the datas
         $category = new Category();
         $category->name = $categoryRequest->name;
         $category->infos = $categoryRequest->infos;
-        $category->created_by = $aboutUser->id();
+        $category->created_by = $aboutCurrentUser->id();
 
         if (
             Category::where('date', $category->date)
@@ -75,16 +75,16 @@ class CategoryController extends Controller
     public function update(
         CategoryRequest $categoryRequest,
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Category $category
     )
     {
-        if(!$aboutUser->isPermisToInteract($category))
+        if(!$aboutCurrentUser->isPermisToInteract($category))
             return $responseService->notAuthorized();
 
         $category->name = $categoryRequest->name;
         $category->infos = $categoryRequest->infos;
-        $category->updated_by = $aboutUser->id();
+        $category->updated_by = $aboutCurrentUser->id();
 
         if (
             Category::where('date', $category->date)
@@ -106,10 +106,10 @@ class CategoryController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Category $category)
     {
-        if(!$aboutUser->isPermisToInteract($category))
+        if(!$aboutCurrentUser->isPermisToInteract($category))
             return $responseService->notAuthorized();
         
         if($category->delete())

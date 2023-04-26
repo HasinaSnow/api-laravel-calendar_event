@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\TypeRequest;
 use App\Models\Type;
 use App\Services\JWT\JWTService;
@@ -29,19 +29,19 @@ class TypeController extends Controller
     public function store(
         ResponseService $responseService,
         TypeRequest $typeRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Type $type
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToCreate($type))
+        if(!$aboutCurrentUser->isPermisToCreate($type))
             return $responseService->notAuthorized();
 
         // store in the database
         $type = new Type();
         $type->name = $typeRequest->name;
         $type->infos = $typeRequest->infos;
-        $type->created_by = $aboutUser->id();
+        $type->created_by = $aboutCurrentUser->id();
 
         if (
             Type::where('name', $typeRequest->name)
@@ -58,13 +58,13 @@ class TypeController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser, 
+        AboutCurrentUser $aboutCurrentUser, 
         Type $type
     )
     {
         $data = ['type' => $type->toArray()];
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
         {
             $data['events'] = $type->events()->with(
                 [
@@ -75,7 +75,7 @@ class TypeController extends Controller
                     'confirmation:id,name'
                 ]
             );
-        }else if($aboutUser->isEventManager())
+        }else if($aboutCurrentUser->isEventManager())
         {
             $data['events'] = $type->events()
                 ->with(
@@ -88,7 +88,7 @@ class TypeController extends Controller
                     ]
                 )
             ->get()
-            ->where('created_by', $aboutUser->id());
+            ->where('created_by', $aboutCurrentUser->id());
         }
 
         return $responseService->successfullGetted($data, 'Type');
@@ -101,18 +101,18 @@ class TypeController extends Controller
     public function update(
         ResponseService $responseService,
         TypeRequest $typeRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Type $type
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($type))
+        if(!$aboutCurrentUser->isPermisToInteract($type))
             return $responseService->notAuthorized();
 
         // store in the database
         $type->name = $typeRequest->name;
         $type->infos = $typeRequest->infos;
-        $type->updated_by = $aboutUser->id();
+        $type->updated_by = $aboutCurrentUser->id();
 
         if (
             Type::where('name', $typeRequest->name)
@@ -129,12 +129,12 @@ class TypeController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Type $type
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToInteract($type))
+        if(!$aboutCurrentUser->isPermisToInteract($type))
             return $responseService->notAuthorized();
 
         if($type->delete())

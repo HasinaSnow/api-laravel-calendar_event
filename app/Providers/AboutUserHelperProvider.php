@@ -2,20 +2,20 @@
 
 namespace App\Providers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Services\JWT\JWTService;
 use App\Services\Permission\Voter\VoteService;
 use Illuminate\Support\ServiceProvider;
 
-class AboutUserHelperProvider extends ServiceProvider
+class AboutCurrentUserHelperProvider extends ServiceProvider
 {
     /**
      * Register services.
      */
     public function register(): void
     {
-        $this->app->singleton(AboutUser::class, function(JWTService $jWTService, VoteService $voteService){
-            return new AboutUser($jWTService, $voteService);
+        $this->app->singleton(AboutCurrentUser::class, function(JWTService $jWTService, VoteService $voteService){
+            return new AboutCurrentUser($jWTService, $voteService);
         });
     }
 

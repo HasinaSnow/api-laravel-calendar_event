@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutUser;
+use App\Helpers\AboutCurrentUser;
 use App\Http\Requests\TaskRequest;
 use App\Models\Task;
 use App\Services\JWT\JWTService;
@@ -17,15 +17,15 @@ class TaskController extends Controller
      */
     public function index(
         ResponseService $responseService,
-        AboutUser $aboutUser
+        AboutCurrentUser $aboutCurrentUser
     )
     {
 
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
             $tasks = Task::orderby('id', 'desc')->get()->toArray();
-        else if($aboutUser->isTaskManager())
+        else if($aboutCurrentUser->isTaskManager())
             $tasks = Task::orderby('id', 'desc')
-                ->whereIn('service_id', $aboutUser->idServices())
+                ->whereIn('service_id', $aboutCurrentUser->idServices())
                 ->with('service:id,name')
                 ->get()->toArray();
         else
@@ -40,12 +40,12 @@ class TaskController extends Controller
     public function store(
         ResponseService $responseService,
         TaskRequest $taskRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Task $task
     )
     {
         // verify the permission
-        if(!$aboutUser->isPermisToCreate($task))
+        if(!$aboutCurrentUser->isPermisToCreate($task))
             return $responseService->notAuthorized();
 
         // store in the database
@@ -53,12 +53,12 @@ class TaskController extends Controller
         $task->name = $taskRequest->name;
         $task->infos = $taskRequest->infos;
         $task->service_id = $taskRequest->service_id;
-        $task->created_by = $aboutUser->id();
+        $task->created_by = $aboutCurrentUser->id();
 
         // verify if the service_id
         if(
-            !$aboutUser->isAdmin() &&
-            !in_array($taskRequest->service_id, $aboutUser->idServices())
+            !$aboutCurrentUser->isAdmin() &&
+            !in_array($taskRequest->service_id, $aboutCurrentUser->idServices())
         )
             return $responseService->errorServer();
 
@@ -80,7 +80,7 @@ class TaskController extends Controller
      */
     public function show(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Task $task
     )
     {
@@ -89,10 +89,10 @@ class TaskController extends Controller
             'service' => $task->service()->get()->toArray()
         ];
         // verify the permission
-        if($aboutUser->isAdmin())
+        if($aboutCurrentUser->isAdmin())
             return $responseService->successfullGetted($datas, 'Task');
-        else if($aboutUser->isTaskManager())
-            if(in_array($task->service_id, $aboutUser->idServices()))
+        else if($aboutCurrentUser->isTaskManager())
+            if(in_array($task->service_id, $aboutCurrentUser->idServices()))
                 return $responseService->successfullGetted($datas, 'Task');
 
         return $responseService->notFound();
@@ -105,23 +105,23 @@ class TaskController extends Controller
     public function update(
         ResponseService $responseService,
         TaskRequest $taskRequest,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Task $task
     )
     {
-        if(!$aboutUser->isPermisToInteract($task))
+        if(!$aboutCurrentUser->isPermisToInteract($task))
             return $responseService->notAuthorized();
 
         // updated in the database
         $task->name = $taskRequest->name;
         $task->infos = $taskRequest->infos;
         $task->service_id = $taskRequest->service_id;
-        $task->updated_by = $aboutUser->id();
+        $task->updated_by = $aboutCurrentUser->id();
 
         // verify if the service_id
         if(
-            !$aboutUser->isAdmin() &&
-            !in_array($taskRequest->service_id, $aboutUser->idServices())
+            !$aboutCurrentUser->isAdmin() &&
+            !in_array($taskRequest->service_id, $aboutCurrentUser->idServices())
         )
             return $responseService->errorServer();
 
@@ -141,11 +141,11 @@ class TaskController extends Controller
      */
     public function destroy(
         ResponseService $responseService,
-        AboutUser $aboutUser,
+        AboutCurrentUser $aboutCurrentUser,
         Task $task
     )
     {
-        if(!$aboutUser->isPermisToInteract($task))
+        if(!$aboutCurrentUser->isPermisToInteract($task))
             return $responseService->notAuthorized();
 
         if($task->delete())
