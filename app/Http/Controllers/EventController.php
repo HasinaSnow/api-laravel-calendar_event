@@ -170,7 +170,7 @@ class EventController extends Controller
             'category' =>$event->category()->get(['id', 'name', 'infos']),
             'place' =>$event->place()->get(['id', 'name', 'infos']),
             'client' =>$event->client()->get(['id', 'name', 'infos']),
-            'confirmation' =>$event->confirmation(['id', 'name', 'infos']),
+            'confirmation' =>$event->confirmation()->get(['id', 'name', 'infos']),
             'type' =>$event->type()->get(['id', 'name', 'infos']),
         ]; 
 
@@ -178,8 +178,8 @@ class EventController extends Controller
         if ($aboutCurrentUser->isAdmin()) {
             $datas['pack'] = $event->pack()->get()->toArray();
             $datas['budget'] = $event->budget()->get()->toArray();
-            $datas['equipements'] =$event->equipements()->get()->toArray();
-            $datas['tasks'] = $event->tasks()->get()->toArray();
+            // $datas['equipements'] =$event->equipements()->get()->toArray();
+            // $datas['tasks'] = $event->tasks()->get()->toArray();
         } else {
             if ($aboutCurrentUser->isEventManager()) {
                 // if (audience = true OR created_by = id_user)

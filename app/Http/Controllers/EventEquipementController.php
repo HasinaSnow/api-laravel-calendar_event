@@ -27,7 +27,7 @@ class EventEquipementController extends Controller
 
         $datas = $event->equipements()->get()->toArray();
 
-        return $responseService->successfullGetted($datas, 'Tasks of event');
+        return $responseService->successfullGetted($datas, 'Equipements of event');
             
     }
 

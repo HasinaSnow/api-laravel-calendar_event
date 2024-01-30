@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\AboutAllUsers;
 use App\Helpers\AboutCurrentUser;
 use App\Helpers\AboutPermission;
 use App\Http\Requests\AttachTaskListRequest;
@@ -11,10 +10,12 @@ use App\Http\Requests\DetachTaskListRequest;
 use App\Http\Requests\ExpirationTaskListRequest;
 use App\Http\Requests\TaskAttributeRequest;
 use App\Models\Event;
-use App\Models\Permission;
 use App\Models\Task;
 use App\Models\User;
-use App\Notifications\TaskCheckedNotification;
+use App\Notifications\TaskAttributedUpdatedNotification;
+use App\Notifications\Tasks\TaskAttributedNotification;
+use App\Notifications\Tasks\TaskCheckedNotification;
+use App\Notifications\TaskUpdateNotification;
 use App\Services\Notification\NotificationService;
 use App\Services\Response\ResponseService;
 
@@ -28,10 +29,9 @@ class EventTaskController extends Controller
         ResponseService $responseService,
         AboutCurrentUser $aboutCurrentUser,
         Event $event
-    )
-    {
+    ) {
         // verify the permission
-        if($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager())
+        if ($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager())
             $datas = $event->tasks()->get()->toArray();
         else {
             $datas = $event->tasks()
@@ -41,7 +41,6 @@ class EventTaskController extends Controller
         }
 
         return $responseService->successfullGetted($datas, 'Tasks of event');
-            
     }
 
     /**
@@ -52,42 +51,38 @@ class EventTaskController extends Controller
         AttachTaskListRequest $attachTaskListRequest,
         AboutCurrentUser $aboutCurrentUser,
         Event $event,
-    )
-    {
+    ) {
         // verifie the permission
-        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
+        if (!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         // dd(count($attachTaskListRequest->tasks));
-        
+
         // list of tasks 
-        foreach($attachTaskListRequest->tasks as $task)
-        {
+        foreach ($attachTaskListRequest->tasks as $task) {
             $serviceToAttach[$task['id']] = [
                 'created_by' => $aboutCurrentUser->id(),
                 'expiration' => $task['expiration'],
             ];
-            if(isset($task['attribute_to']))
-            {
+            if (isset($task['attribute_to'])) {
                 $serviceToAttach[$task['id']]['attribute_to'] = $task['attribute_to'];
                 $serviceToAttach[$task['id']]['attribute_at'] = now();
             }
-            if(isset($task['check']))
-            {
+            if (isset($task['check'])) {
                 $serviceToAttach[$task['id']]['check'] = $task['check'];
                 $serviceToAttach[$task['id']]['check_at'] = now();
             }
-            if(isset($task['expiration']))
+            if (isset($task['expiration']))
                 $serviceToAttach[$task['id']]['expiration'] = $task['expiration'];
         }
 
         // attach all the list of tasks
-        if($event->tasks()->syncWithoutDetaching($serviceToAttach))
+        if ($event->tasks()->syncWithoutDetaching($serviceToAttach))
             return $responseService->successfullAttached(
-                count($attachTaskListRequest->tasks) . ' Task(s)', 
+                count($attachTaskListRequest->tasks) . ' Task(s)',
                 $event->date
             );
-        
+
         // send error serv
         return $responseService->errorServer();
     }
@@ -100,17 +95,16 @@ class EventTaskController extends Controller
         DetachTaskListRequest $detachTaskListRequest,
         AboutCurrentUser $aboutCurrentUser,
         Event $event,
-    )
-    {
-        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
+    ) {
+        if (!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
-        if($event->tasks()->detach($detachTaskListRequest->tasks))
+        if ($event->tasks()->detach($detachTaskListRequest->tasks))
             return $responseService->successfullDetached(
-                count($detachTaskListRequest->tasks) . ' Task(s)', 
+                count($detachTaskListRequest->tasks) . ' Task(s)',
                 $event->date
             );
-        
+
         return $responseService->errorServer();
     }
 
@@ -120,32 +114,73 @@ class EventTaskController extends Controller
     public function attributeTask(
         ResponseService $responseService,
         AboutCurrentUser $aboutCurrentUser,
+        AboutPermission $aboutPermission,
+        NotificationService $notificationService,
         TaskAttributeRequest $taskAttributeRequest,
         Event $event,
         Task $task
-    )
-    {
+    ) {
 
         // verify the permission who attribute the task (admin, taskManager)
-        if(!$aboutCurrentUser->isPermisToInteract($task))
+        if (!$aboutCurrentUser->isPermisToInteract($task))
             return $responseService->notAuthorized();
 
         // verify the id user who we attribute the task is in service of the task
-        if(!in_array($task->service_id, $aboutCurrentUser->idServicesOfUserSpecified($taskAttributeRequest->attribute_to)))
+        if (!in_array($task->service_id, $aboutCurrentUser->idServicesOfUserSpecified($taskAttributeRequest->attribute_to)))
             return $responseService->generateResponseJson('error', 500, 'Not authorized to attribute this task for this user');
-            
+
+        // record a rectification notifications for the specified users 
+        $taskEvent = $task->events->first();
+        $notifiers = $aboutPermission->getArrayUserCollections(['role_admin', 'role_task_manager']);
+
+        if ($taskEvent->pivot->attribute_to !== null) {
+            $attribute_to = User::find($taskEvent->pivot->attribute_to);
+
+            foreach ($notifiers as $notifier)
+                $ids[] = $notifier->id;
+
+            if (in_array($attribute_to->id, $ids))
+                $notifiers[] = $attribute_to;
+
+            //  record the update notif to the specified users
+            $notificationService->store(
+                new TaskAttributedUpdatedNotification($task, $event, $taskAttributeRequest, $aboutCurrentUser),
+                $notifiers
+            );
+
+            // record the new notif to the new attributed
+            $notificationService->store(
+                new TaskAttributedNotification($task, $event, $taskAttributeRequest, $aboutCurrentUser),
+                $attribute_to
+            );
+        } else {
+            // record the new notifs after the rectification in db
+            $attribute_to = User::find($taskAttributeRequest->attribute_to);
+            foreach ($notifiers as $notifier)
+                $ids[] = $notifier->id;
+            if (in_array($attribute_to->id, $ids))
+                $notifiers[] = $attribute_to;
+
+            $notificationService->store(
+                new TaskAttributedNotification($task, $event, $taskAttributeRequest, $aboutCurrentUser),
+                $notifiers
+            );
+        }
+
         $event->tasks()->updateExistingPivot($task->id, [
             'attribute_to' => $taskAttributeRequest->attribute_to,
             'attribute_at' => now(),
             'updated_by' => $aboutCurrentUser->id(),
             'updated_at' => now()
         ]);
+
+
+
         return $responseService->generateResponseJson(
             'success',
             200,
             "Task : '" . $task->name . "' attributed to '" . User::findOrFail($taskAttributeRequest->attribute_to)->name . "'."
         );
-        
     }
 
     /**
@@ -154,11 +189,12 @@ class EventTaskController extends Controller
     public function attributeTaskList(
         ResponseService $responseService,
         AttributeTasklistRequest $attributeTasklistRequest,
+        NotificationService $notificationService,
+        AboutPermission $aboutPermission,
         AboutCurrentUser $aboutCurrentUser,
         Event $event,
-    )
-    {
-        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
+    ) {
+        if (!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         // les tasks doivent être de même services
@@ -171,16 +207,12 @@ class EventTaskController extends Controller
             'updated_at' => now()
         ];
 
-        if(isset($attributeTasklistRequest['expiration']))
+        if (isset($attributeTasklistRequest['expiration']))
             $data['expiration'] = $attributeTasklistRequest->expiration;
 
-        if(
-            $event->tasks()->updateExistingPivot($attributeTasklistRequest->tasks, $data)
-        )
-            return $responseService->successfullUpdated('List of Task');
+        $event->tasks()->updateExistingPivot($attributeTasklistRequest->tasks, $data);
 
-        // send error serv
-        return $responseService->errorServer();
+        return $responseService->successfullUpdated('List of Task');
     }
 
     /**
@@ -191,9 +223,8 @@ class EventTaskController extends Controller
         ExpirationTaskListRequest $expirationTaskListRequest,
         AboutCurrentUser $aboutCurrentUser,
         Event $event
-    )
-    {
-        if(!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
+    ) {
+        if (!($aboutCurrentUser->isAdmin() || $aboutCurrentUser->isTaskManager()))
             return $responseService->notAuthorized();
 
         $data = [
@@ -202,7 +233,7 @@ class EventTaskController extends Controller
             'updated_at' => now()
         ];
 
-        if(
+        if (
             $event->tasks()->updateExistingPivot($expirationTaskListRequest->tasks, $data)
         )
             return $responseService->successfullUpdated('List of Task');
@@ -221,37 +252,39 @@ class EventTaskController extends Controller
         AboutCurrentUser $aboutCurrentUser,
         Event $event,
         Task $task
-    )
-    {
+    ) {
         // verify the user who checked the task
-        if($aboutCurrentUser->isAdmin() || $event->tasks()->findOrFail($task->id)->toArray()['pivot']['attribute_to'] === $aboutCurrentUser->id())
-        {
-            if($event->tasks()->findOrFail($task->id)->toArray()['pivot']['check'])
+        if (
+            $aboutCurrentUser->isAdmin() ||
+            $event->tasks()->findOrFail($task->id)->toArray()['pivot']['attribute_to'] === $aboutCurrentUser->id()
+        ) {
+            // if the specified task is already checked
+            if ($event->tasks()->findOrFail($task->id)->toArray()['pivot']['check'])
                 return $responseService->generateResponseJson(
                     'success',
                     200,
                     'The task is already checked'
                 );
-            
-            // record the notifs in db
-            $notifiers = $aboutPermission->getArrayUserCollections(['role_admin', 'role_task_manager']);
-            $notificationService->store(new TaskCheckedNotification($task, $event, $aboutCurrentUser), $notifiers);
 
+            // check the specified task
             $event->tasks()->updateExistingPivot($task->id, [
                 'check' => true,
                 'check_at' => now(),
                 'updated_by' => $aboutCurrentUser->id(),
                 'updated_at' => now()
             ]);
-            
+
+            // record the notifs in db
+            $notifiers = $aboutPermission->getArrayUserCollections(['role_admin', 'role_task_manager']);
+            $notificationService->store(new TaskCheckedNotification($task, $event, $aboutCurrentUser), $notifiers);
+
             return $responseService->generateResponseJson(
                 'success',
                 200,
                 'Task:' . $task->name . ' is successfully checked'
             );
         }
-        
-        return $responseService->notAuthorized();        
-        
+
+        return $responseService->notAuthorized();
     }
 }

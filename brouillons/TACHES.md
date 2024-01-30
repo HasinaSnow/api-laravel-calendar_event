@@ -2,7 +2,8 @@
 |> upload de fichier (jpg)
 ## EN COURS :
 - sytème de notifications statiques
-    - TaskchekedNotification
+    - TaskchekedNotification (fait)
+    - TaskAttributedNotification 
 
 ## FINI :
 |> migrations et factory des tables (sauf la table invoices)

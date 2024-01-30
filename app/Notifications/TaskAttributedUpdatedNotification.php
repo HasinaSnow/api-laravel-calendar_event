@@ -2,30 +2,33 @@
 
 namespace App\Notifications;
 
-use App\Helpers\AboutAllUsers;
 use App\Helpers\AboutCurrentUser;
+use App\Http\Requests\TaskAttributeRequest;
 use App\Models\Event;
 use App\Models\Task;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class TaskCheckedNotification extends Notification
+class TaskAttributedUpdatedNotification extends Notification
 {
     use Queueable;
 
-    public $task;
-    public $event;
-    public $aboutCurrentUser;
+    private $task;
+    private $event;
+    private $aboutCurrentUser;
+    private $taskAttributeRequest;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(Task $task, Event $event, AboutCurrentUser $aboutCurrentUser)
+    public function __construct(Task $task, Event $event, TaskAttributeRequest $taskAttributeRequest, AboutCurrentUser $aboutCurrentUser)
     {
         $this->task = $task;
         $this->event = $event;
+        $this->taskAttributeRequest = $taskAttributeRequest;
         $this->aboutCurrentUser = $aboutCurrentUser;
     }
 
@@ -57,12 +60,13 @@ class TaskCheckedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $user = ($notifiable->id=== $this->aboutCurrentUser->id()) ? 'You' : $this->aboutCurrentUser->name();
+        $user = ($notifiable->id === $this->aboutCurrentUser->id()) ? 'You' : $this->aboutCurrentUser->name();
+        $message = '"' . $user . '" updated the task assignement "' . $this->task->name . '" to "' . User::find($this->taskAttributeRequest->attribute_to)->name . '"  for the event ' . $this->event->date . '.';
 
         return [
             'task_id' => $this->task->id,
             'event_id' => $this->event->id,
-            'message' =>'"' . $user . '" checked the task "' . $this->task->name . '" as finished.'
+            'message' => $message
         ];
     }
 }
