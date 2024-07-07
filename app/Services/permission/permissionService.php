@@ -42,7 +42,6 @@ class PermissionService
      *
      * @param array|string|null $attribute
      * @param string $subject
-     * @param 
      * @return response|void
      */
     public function Permission($attribute, $subject)

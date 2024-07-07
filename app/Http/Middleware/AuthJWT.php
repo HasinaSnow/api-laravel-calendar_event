@@ -68,8 +68,7 @@ class AuthJWT
                 'message' => 'User not Authentified'
             ],403);
 
-        }     
-        
+        }
     }
 
 }

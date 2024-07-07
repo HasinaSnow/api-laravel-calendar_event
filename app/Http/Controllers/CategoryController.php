@@ -66,7 +66,7 @@ class CategoryController extends Controller
     {
         return $responseService->successfullGetted(
             $category->toArray(), 'Category'
-        );     
+        );
     }
 
     /**

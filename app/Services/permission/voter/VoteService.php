@@ -41,7 +41,9 @@ class VoteService
 
     }
 
-
+    /**
+     * 
+     */
     private function voterCan($voter, $attributes, $subject, $JWTService)
     {
         if($voter->support($attributes, $subject))
