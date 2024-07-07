@@ -22,13 +22,12 @@ class AboutCurrentUser
     private $voteService;
 
 
-
     public function __construct(JWTService $jWTService, VoteService $voteService)
     {
         $this->jWTService = $jWTService;
         $this->voteService = $voteService;
     }
-    
+
     /**
      * verifie if the current user is permis to create the specified model 
      * 

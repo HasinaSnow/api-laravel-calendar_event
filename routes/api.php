@@ -116,7 +116,7 @@ Route::group(['middleware' => 'isAuthJWT'], function () {
 
         // EQUIPEMENTS
         Route::apiResource('equipements', EquipementController::class);
-        
+
         // TASKS
         Route::apiResource('tasks', TaskController::class);
 
@@ -134,7 +134,6 @@ Route::group(['middleware' => 'isAuthJWT'], function () {
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('confirmations', ConfirmationController::class)->name('get', 'confirmations');
 
-        Route::apiResource('service_users', ServiceUserController::class);
         Route::apiResource('event_services', EventServiceController::class);
         Route::apiResource('deposits', DepositController::class);
 });

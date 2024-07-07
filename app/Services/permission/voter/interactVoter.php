@@ -23,7 +23,7 @@ class InteractVoter implements VoterInterface
     public function support (array $attributes, $subject = null) : bool
     {
         return (
-            in_array(self::INTERACT, $attributes ) && 
+            in_array(self::INTERACT, $attributes) && 
            ( 
                 $subject instanceof Client ||
                 $subject instanceof Category ||

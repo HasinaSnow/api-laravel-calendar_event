@@ -54,18 +54,18 @@ class AccountController extends Controller
 
             $user->email_verified_at = now();
             $user->remember_token = Str::random(10);
-    
+
             $user->save();
             // dd($user->getAttributes());
 
             return $this->responseJson('success', 200, 'User successfully registered');
-            
+
         } catch(Exception $e)
         {
             return response()->json($e);
         }
     }
-    
+
     /**
      * Get a JWT via given credentials
      *
@@ -94,8 +94,6 @@ class AccountController extends Controller
 
         if($validator->fails())
             return $this->responseJson('error', 422, $validator->errors());
-
-
         /**
          * service verfication account in db
          * 
@@ -113,7 +111,7 @@ class AccountController extends Controller
 
         // send a new unread notifications in response for this user
         $responseService->setNotifications($notificationService->get($user));
-        
+
         /**
          * response http
          * 
